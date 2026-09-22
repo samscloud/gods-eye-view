@@ -177,9 +177,28 @@ export function createRendering({
    * @returns {string} SVG data URL.
    */
 
+  // Overcast icon set: hull outlines per vessel class (SamscloudOvercast
+  // client/src/lib/globeIcons.ts), 64 box scaled into this 32 box.
+  const OVERCAST_HULLS = {cargo: 'M0,-24 L8,-12 L8,20 L-8,20 L-8,-12 Z M-5,-4 h10 v4 h-10 Z M-5,3 h10 v4 h-10 Z M-5,10 h10 v4 h-10 Z', tanker: 'M0,-24 L8,-12 L8,20 L-8,20 L-8,-12 Z M-4,-2 a4,4 0 1,0 0.01,0 Z M-4,9 a4,4 0 1,0 0.01,0 Z', passenger: 'M0,-24 L9,-10 L9,20 L-9,20 L-9,-10 Z M-6,-6 h12 v22 h-12 Z', fishing: 'M0,-18 L6,-8 L6,14 L-6,14 L-6,-8 Z M-1.2,-10 h2.4 v20 h-2.4 Z', tug: 'M0,-14 L7,-6 L7,12 L-7,12 L-7,-6 Z M-4,-2 h8 v8 h-8 Z', military: 'M0,-26 L6,-10 L6,20 L-6,20 L-6,-10 Z M-2,-8 h4 v6 h-4 Z M-4,4 h8 v5 h-8 Z', sailing: 'M0,-18 L5,-6 L5,14 L-5,14 L-5,-6 Z M0,-16 L0,10 M0,-12 L9,4 L0,4 Z', pleasure: 'M0,-16 L6,-6 L6,12 L-6,12 L-6,-6 Z', highspeed: 'M0,-22 L7,-4 L7,14 L-7,14 L-7,-4 Z M-7,14 L-4,18 L4,18 L7,14 Z', sar: 'M0,-18 L7,-8 L7,14 L-7,14 L-7,-8 Z M-1.5,-6 h3 v12 h-3 Z M-6,-1.5 h12 v3 h-12 Z', other: 'M0,-20 L7,-10 L7,16 L-7,16 L-7,-10 Z', unknown: 'M0,-20 L7,-10 L7,16 L-7,16 L-7,-10 Z'};
+  function hullClass(type) {
+    const t = String(type || '').toLowerCase();
+    if (/tank/.test(t)) return 'tanker';
+    if (/cargo|container|bulk/.test(t)) return 'cargo';
+    if (/passenger|cruise|ferry/.test(t)) return 'passenger';
+    if (/fish/.test(t)) return 'fishing';
+    if (/tug|tow|pilot/.test(t)) return 'tug';
+    if (/military|navy|law/.test(t)) return 'military';
+    if (/sail/.test(t)) return 'sailing';
+    if (/pleasure|yacht/.test(t)) return 'pleasure';
+    if (/high.?speed|hsc/.test(t)) return 'highspeed';
+    if (/search|rescue|sar/.test(t)) return 'sar';
+    return t ? 'other' : 'unknown';
+  }
+
   function shipIcon(record, selected) {
     const cssColor = selected ? '#ffffff' : vesselTypeCss(record.type);
-    const key = `${cssColor}:${selected ? 'selected' : 'normal'}`;
+    const hull = hullClass(record.type);
+    const key = `${cssColor}:${hull}:${selected ? 'selected' : 'normal'}`;
     if (vesselState.shipIconCache.has(key))
       return vesselState.shipIconCache.get(key);
 
@@ -187,7 +206,7 @@ export function createRendering({
     const strokeWidth = selected ? 1.1 : 0.7;
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
     <g transform="translate(16,16)">
-      <path d="M0,-14 L11,10 L4,7 L0,14 L-4,7 L-11,10 Z" fill="${cssColor}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round"/>
+      <path d="${OVERCAST_HULLS[hull]}" transform="scale(0.55)" fill="${cssColor}" fill-rule="evenodd" stroke="${stroke}" stroke-width="${strokeWidth * 1.8}" stroke-linejoin="round"/>
     </g>
   </svg>`;
     const icon = 'data:image/svg+xml;base64,' + btoa(svg);
