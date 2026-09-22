@@ -41,13 +41,13 @@
 }
 
 #command-dock .dock-label-icon-location {
-  mask-image: url('/location.svg');
-  -webkit-mask-image: url('/location.svg');
+  mask-image: url('/globe/location.svg');
+  -webkit-mask-image: url('/globe/location.svg');
 }
 
 #command-dock .dock-label-icon-presets {
-  mask-image: url('/visual-presets.svg');
-  -webkit-mask-image: url('/visual-presets.svg');
+  mask-image: url('/globe/visual-presets.svg');
+  -webkit-mask-image: url('/globe/visual-presets.svg');
 }
 
 #command-dock :is(#location-bar, #control-panel):hover .dock-label-icon,

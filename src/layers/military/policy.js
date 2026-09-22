@@ -66,7 +66,7 @@ export const GROUND_SCALE = 0.8;
 // can't tank the frame (no instancing yet). Distinct asset + amber tint set this layer
 // apart from the commercial flights layer.
 
-export const JET_MODEL_URL = '/models/jet.glb';
+export const JET_MODEL_URL = '/globe/models/jet.glb';
 
 export const MODEL_ALT_CEIL_M = 800000;
 // m: below this camera altitude, draw 3D models (raised so it's easy to trigger)
@@ -130,7 +130,7 @@ export const MODEL_COLOR_BLEND_AMOUNT = 0.94;
 // asset has its former 24× runtime calibration baked into transform-applied
 // meter-scale geometry; these values mirror flights.js and are regression-pinned.
 
-export const PLANE_MODEL_URL = '/models/airplane.glb';
+export const PLANE_MODEL_URL = '/globe/models/airplane.glb';
 
 export const PLANE_MODEL_SCALE = 1;
 

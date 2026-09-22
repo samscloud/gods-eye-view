@@ -41,7 +41,7 @@ export const GROUND_SCALE = 0.8;
 // the slots go to either the nearest planes ('proximity') or every in-view plane ('all'), each
 // backed by a hard cap so a draw-call explosion can't tank the frame (no instancing yet).
 
-export const PLANE_MODEL_URL = '/models/airplane.glb';
+export const PLANE_MODEL_URL = '/globe/models/airplane.glb';
 
 export const MODEL_ALT_CEIL_M = 800000;
 // m: below this camera altitude, draw 3D models (raised so it's easy to trigger)
