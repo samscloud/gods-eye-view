@@ -4,7 +4,7 @@ import { createAisStreamSource } from '../sources/live/standalone.js';
 
 const aisLiveVesselsLayer = createApplicationVessels({
   source: createAisStreamSource({
-    apiUrl: import.meta.env?.VITE_AIS_LIVE_API_URL || '/api/ais-live',
+    apiUrl: import.meta.env?.VITE_AIS_LIVE_API_URL || '/api/globe/ais-live',
   }),
   options: {
     maxRows: import.meta.env?.VITE_AIS_LIVE_MAX_ROWS,
