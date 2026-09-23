@@ -1,12 +1,12 @@
 import { defaultSurface } from './surfaceServices.js';
 import { createApplicationFlights } from '../app/layers/flights.js';
 
-import { createOvercastAircraftSource } from '../sources/live/overcast.js';
+import { createOpenSkySource } from '../sources/live/standalone.js';
 import * as militaryRegistry from './militaryRegistry.js';
 
 const flightsLayer = createApplicationFlights({
   surface: defaultSurface,
-  source: createOvercastAircraftSource({ scope: 'all' }),
+  source: createOpenSkySource(),
   militaryRegistry,
 });
 export { TRACKED_MODEL_MAX_PX } from '../layers/flights/policy.js';

@@ -1,0 +1,25 @@
+/*
+ * Compact layout when the globe sits inside the Command Center's map panel
+ * (loaded as /globe/?embed=1). The panel is short and shares the screen, so
+ * the decorative HUD readouts and the big title go; every control stays.
+ */
+html.overcast-embed #intel-hud .hud-corner,
+html.overcast-embed #intel-hud .hud-top-bar,
+html.overcast-embed #intel-hud .hud-edge,
+html.overcast-embed #title-bar .subtitle,
+html.overcast-embed #style-indicator {
+  display: none !important;
+}
+html.overcast-embed #title-bar h1 {
+  font-size: 13px;
+  letter-spacing: 0.3em;
+}
+html.overcast-embed #title-bar .title-logo img {
+  width: 18px;
+  height: 18px;
+}
+/* The first-run picker is a full-screen choice; in the panel it would cover
+   the whole map. It still runs in full screen (/globe/). */
+html.overcast-embed #first-run-launcher {
+  display: none !important;
+}

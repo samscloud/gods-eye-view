@@ -1,7 +1,7 @@
 import { createMilitaryRegistry } from '../layers/aircraft/classification.js';
-import { createOvercastAircraftSource } from '../sources/live/overcast.js';
+import { createAdsbLolSource } from '../sources/live/standalone.js';
 
-const registry = createMilitaryRegistry({ source: createOvercastAircraftSource({ scope: 'mil' }) });
+const registry = createMilitaryRegistry({ source: createAdsbLolSource() });
 export const isMilitaryLayerActive = registry.isMilitaryLayerActive;
 export const setMilitaryLayerActive = registry.setMilitaryLayerActive;
 export const onMilitaryLayerActiveChange = registry.onMilitaryLayerActiveChange;

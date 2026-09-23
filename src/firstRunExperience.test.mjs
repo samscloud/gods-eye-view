@@ -568,12 +568,10 @@ test('markup, startup ordering and accessibility remain pinned', () => {
   assert.match(visible, /earthquakes/i);
   assert.match(visible, /fires?/i, 'the tile must promise the fires it enables');
 
-  // The card's one persuasive line is OWNER-AUTHORED and pinned verbatim,
-  // unspaced em dash included. This is copy, not prose to be improved in a
-  // passing edit — changing it needs the owner, not a nicer-sounding rewrite.
+  // The card's one line is OWNER-AUTHORED and pinned verbatim. Overcast's
+  // owner replaced the upstream line on 22 Sep 2026; changing it needs the owner.
   assert.ok(
-    html.includes('<p id="first-run-description">It feels like a forbidden cockpit'
-      + '—then you realize the sources are public and the data is real.</p>'),
+    html.includes('<p id="first-run-description">Every feed on this globe is public and live. Pick where to start.</p>'),
     'the owner-authored first-run line must ship exactly as written',
   );
 

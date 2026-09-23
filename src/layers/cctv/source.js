@@ -2,6 +2,8 @@ import {
   ACTIVE_FRAME_REFRESH_MS,
   FRAME_ENDPOINT,
   MEDIA_ENDPOINT,
+  SOURCE_ENDPOINT,
+  HEALTH_ENDPOINT,
 } from './sourcePolicy.js';
 function safeNumber(value, fallback = NaN) {
   const n = Number(value);
@@ -44,10 +46,10 @@ export function createCctvSource({
   }
   return {
     getCatalog(options) {
-      return read('/api/cctv/sources', 'sources', options);
+      return read(SOURCE_ENDPOINT, 'sources', options);
     },
     getHealth(options) {
-      return read('/api/cctv/health', 'cameras', options);
+      return read(HEALTH_ENDPOINT, 'cameras', options);
     },
     getFrameUrl: frameUrlFor,
     getMediaUrl: mediaUrlFor,

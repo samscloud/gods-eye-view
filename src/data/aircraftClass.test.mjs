@@ -58,7 +58,7 @@ test('scale/url tables cover every class', () => {
 
 test('CLASS_MODEL_REAL entries carry the fields the layers consume', () => {
   for (const [kind, spec] of Object.entries(CLASS_MODEL_REAL)) {
-    assert.ok(spec.url.startsWith('/models/') && spec.url.endsWith('.glb'), kind);
+    assert.ok(spec.url.startsWith('/globe/models/') && spec.url.endsWith('.glb'), kind); // Overcast serves under /globe/
     assert.ok(spec.radiusM > 0 && spec.bellyM > 0, kind);
     // every real-model class must also exist in the classifier tables
     assert.ok(Number.isFinite(CLASS_SCALE_2D[kind]), kind);

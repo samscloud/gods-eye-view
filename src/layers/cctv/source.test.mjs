@@ -30,7 +30,7 @@ test('camera catalog and health use fixed source routes and caller cancellation'
   await source.getHealth({ signal: controller.signal });
   assert.deepEqual(
     calls.map((call) => call.path),
-    ['/api/cctv/sources', '/api/cctv/health'],
+    ['/api/globe/cctv/sources', '/api/globe/cctv/health'],
   );
   for (const { options } of calls) {
     assert.equal(options.signal, controller.signal);
@@ -73,11 +73,11 @@ test('frame and media URLs preserve registered camera identity and encoded metad
   const media = new URL(source.getMediaUrl(camera), 'https://example.test');
   assert.equal(
     frame.pathname,
-    '/api/cctv/frame/' + encodeURIComponent(camera.id),
+    '/api/globe/cctv/frame/' + encodeURIComponent(camera.id),
   );
   assert.equal(
     media.pathname,
-    '/api/cctv/media/' + encodeURIComponent(camera.id),
+    '/api/globe/cctv/media/' + encodeURIComponent(camera.id),
   );
   assert.equal(frame.searchParams.get('label'), camera.name);
   assert.equal(frame.searchParams.get('city'), camera.city);

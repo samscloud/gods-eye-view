@@ -1,3 +1,6 @@
+// Compact chrome inside the Command Center map panel (/globe/?embed=1).
+if (new URLSearchParams(globalThis.location?.search || '').has('embed'))
+  document.documentElement.classList.add('overcast-embed');
 import { createStandaloneApplication } from './standalone/application.js';
 import { describeError } from './standalone/errors.js';
 

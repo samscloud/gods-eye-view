@@ -34,6 +34,8 @@ import {
 } from './modelVisualAnchor.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+// Overcast serves the app under /globe/; asset URLs carry that prefix, files do not.
+const publicPath = (url) => String(url).replace(/^\/globe\//, '/');
 
 /** Every class's rendered bounding radius (m) must land in this envelope —
  *  bigger than any clamped-down light aircraft, smaller than the largest real
@@ -402,7 +404,7 @@ const LAYERS = [
 
 const measured = LAYERS.map((layer) => {
   const { modelScale, bellyOffsetNative } = layerConstants(layer.source);
-  const assetPath = path.join(ROOT, 'public', layer.asset);
+  const assetPath = path.join(ROOT, 'public', publicPath(layer.asset));
   const nativeRadius = nativeBoundingRadius(assetPath);
   return {
     ...layer, modelScale, bellyOffsetNative, nativeRadius,
@@ -466,7 +468,7 @@ const REAL_RADIUS_MIN_M = 5;
 const REAL_RADIUS_MAX_M = 60;
 for (const [klass, spec] of Object.entries(CLASS_MODEL_REAL)) {
   test(`hangar fleet: ${klass} registry pins match the shipped GLB (${spec.url})`, () => {
-    const assetPath = path.join(ROOT, 'public', spec.url);
+    const assetPath = path.join(ROOT, 'public', publicPath(spec.url));
     const radius = nativeBoundingRadius(assetPath);
     const belly = nativeOriginAboveLowestVertex(assetPath);
     assert.ok(
@@ -512,7 +514,7 @@ test('military layer airplane.glb constants match the measured GLB and flights c
 
 test('shared-model visual-centre metadata matches the shipped GLBs', () => {
   for (const [url, expected] of Object.entries(MODEL_VISUAL_CENTER_NATIVE)) {
-    const measuredCenter = nativeVisualCenter(path.join(ROOT, 'public', url));
+    const measuredCenter = nativeVisualCenter(path.join(ROOT, 'public', publicPath(url)));
     measuredCenter.forEach((value, axis) => {
       assert.ok(
         Math.abs(value - expected[axis]) <= 0.001,
@@ -542,7 +544,7 @@ test('every approved aircraft model has a trail anchor on its real aft-belly hul
   );
 
   for (const url of urls) {
-    const file = path.join(ROOT, 'public', url);
+    const file = path.join(ROOT, 'public', publicPath(url));
     const { verts, tris } = nativeMesh(file);
     const { min, max } = vertexBounds(verts);
     const centre = min.map((value, axis) => (value + max[axis]) / 2);
@@ -646,7 +648,7 @@ function drawnHeadLength(start, anchor, centre, envelope) {
 
 test('a stationary contact draws no trail head, and a moving one draws all of it', () => {
   for (const url of TRAIL_RIG_URLS) {
-    const envelope = nativeBoundingRadius(path.join(ROOT, 'public', url));
+    const envelope = nativeBoundingRadius(path.join(ROOT, 'public', publicPath(url)));
     const anchor = trailRigAnchor(url);
     // Parked: the last body point is where the aircraft is. Nothing at all —
     // not a short segment, not a degenerate one. Nothing.
@@ -708,7 +710,7 @@ test('a stationary contact draws no trail head, and a moving one draws all of it
 // with room, and it is nowhere near the 10.33 m the boolean produced.
 test('the trail head grows continuously across the envelope, never in one step', () => {
   for (const url of TRAIL_RIG_URLS) {
-    const envelope = nativeBoundingRadius(path.join(ROOT, 'public', url));
+    const envelope = nativeBoundingRadius(path.join(ROOT, 'public', publicPath(url)));
     const anchor = trailRigAnchor(url);
     const step = envelope / 400;
     let previous = 0;
@@ -857,7 +859,7 @@ test('the trail anchor rides the rendered longitudinal axis at every heading', (
 // arbitrary heading still puts it aft of the hull.
 test('a hovering rotorcraft anchors aft of its own hull, whatever its heading', () => {
   const position = Cesium.Cartesian3.fromDegrees(-97.7, 30.2, 300);
-  const anchor = MODEL_TRAIL_ANCHOR_NATIVE['/models/bell206.glb'];
+  const anchor = MODEL_TRAIL_ANCHOR_NATIVE['/globe/models/bell206.glb'];
   for (const headingDeg of [0, 137.5, 271.9]) {
     const hpr = new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(headingDeg), 0, 0);
     const model = {
@@ -888,7 +890,7 @@ test('a hovering rotorcraft anchors aft of its own hull, whatever its heading', 
 
 test('legacy aircraft GLBs keep scale and orientation baked with no node transforms', () => {
   for (const url of Object.keys(MODEL_VISUAL_CENTER_NATIVE)) {
-    const file = path.join(ROOT, 'public', url);
+    const file = path.join(ROOT, 'public', publicPath(url));
     const gltf = glbJson(file);
     for (const node of gltf.nodes || []) {
       assert.equal(node.matrix, undefined, `${url}: ${node.name || 'node'} has an unapplied matrix`);
@@ -907,7 +909,7 @@ test('legacy aircraft GLBs keep scale and orientation baked with no node transfo
 
 test('real per-class models remain origin-centred for visual anchoring', () => {
   for (const spec of Object.values(CLASS_MODEL_REAL)) {
-    const center = nativeVisualCenter(path.join(ROOT, 'public', spec.url));
+    const center = nativeVisualCenter(path.join(ROOT, 'public', publicPath(spec.url)));
     const maxOffset = Math.max(...center.map(Math.abs));
     assert.ok(
       maxOffset <= 0.001,

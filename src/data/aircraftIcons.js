@@ -48,7 +48,7 @@ const DISC = 'fill="white" fill-opacity="0.5"';
 // nose toward -Y. Numbers are in the 96-unit space (half-extent up to ~45).
 /* Overcast icon set (client/src/lib/globeIcons.ts in SamscloudOvercast),
  * drawn in a 64 box; scaled 1.45x into this 96 box. White fill so the
- * layers' colour tint applies. tr3b/tr3bHot fall back to "unknown". */
+ * layers' colour tint applies. tr3b/tr3bHot keep the upstream drawing. */
 const OVERCAST_SCALE = 'transform="scale(1.45)"';
 const ov = (d) => `<path d="${d}" fill="white" fill-rule="evenodd" ${STROKE} ${OVERCAST_SCALE}/>`;
 const BODIES = {
@@ -63,8 +63,37 @@ const BODIES = {
   bizjet: ov('M0,-23 C2,-21.5 2.6,-17 2.6,-11 L2.6,0 L19,10 L19,13 L2.6,8 L2.6,15 L10,17 L10,19.5 L0,18 L-10,19.5 L-10,17 L-2.6,15 L-2.6,8 L-19,13 L-19,10 L-2.6,0 L-2.6,-11 C-2.6,-17 -2,-21.5 0,-23 Z M-7,20 L7,20 L7,22.4 L-7,22.4 Z'),
   uav: ov('M0,-14 C3,-14 4,-11 4,-7 L4,-2 L30,-0.5 L30,2.5 L4,2 L4,12 L10,18 L10,20.5 L0,17 L-10,20.5 L-10,18 L-4,12 L-4,2 L-30,2.5 L-30,-0.5 L-4,-2 L-4,-7 C-4,-11 -3,-14 0,-14 Z'),
   unknown: ov('M0,-18 L14,14 L0,7 L-14,14 Z'),
-  tr3b: ov('M0,-18 L14,14 L0,7 L-14,14 Z'),
-  tr3bHot: ov('M0,-18 L14,14 L0,7 L-14,14 Z'),
+  // TR-3B keeps the upstream drawing: a fictional class with no Overcast glyph.
+  tr3b: `
+    <path d="M0,-38 L 40,30 L -40,30 Z"
+          fill="#0d1014" stroke="rgba(158,184,210,0.34)" stroke-width="1.6"
+          stroke-linejoin="round"/>
+    <circle cx="0" cy="-24" r="8.5" fill="#c9dcf0" fill-opacity="0.13"/>
+    <circle cx="-28" cy="21" r="8.5" fill="#c9dcf0" fill-opacity="0.13"/>
+    <circle cx="28" cy="21" r="8.5" fill="#c9dcf0" fill-opacity="0.13"/>
+    <circle cx="0" cy="-24" r="4.6" fill="#dceaf8" fill-opacity="0.52"/>
+    <circle cx="-28" cy="21" r="4.6" fill="#dceaf8" fill-opacity="0.52"/>
+    <circle cx="28" cy="21" r="4.6" fill="#dceaf8" fill-opacity="0.52"/>
+    <circle cx="0" cy="6" r="3.4" fill="#dceaf8" fill-opacity="0.26"/>`,
+  tr3bHot: `
+    <defs>
+      <radialGradient id="tr3bGlow">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.92"/>
+        <stop offset="32%" stop-color="#f2f9ff" stop-opacity="0.44"/>
+        <stop offset="100%" stop-color="#dcefff" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <path d="M0,-38 L 40,30 L -40,30 Z"
+          fill="#0b0e12" stroke="rgba(126,148,172,0.3)" stroke-width="1.6"
+          stroke-linejoin="round"/>
+    <circle cx="0" cy="-24" r="15" fill="url(#tr3bGlow)"/>
+    <circle cx="-28" cy="21" r="15" fill="url(#tr3bGlow)"/>
+    <circle cx="28" cy="21" r="15" fill="url(#tr3bGlow)"/>
+    <circle cx="0" cy="6" r="10" fill="url(#tr3bGlow)"/>
+    <circle cx="0" cy="-24" r="5.2" fill="#ffffff"/>
+    <circle cx="-28" cy="21" r="5.2" fill="#ffffff"/>
+    <circle cx="28" cy="21" r="5.2" fill="#ffffff"/>
+    <circle cx="0" cy="6" r="3.6" fill="#ffffff" fill-opacity="0.82"/>`,
 };
 
 const _iconCache = new Map();

@@ -1,5 +1,6 @@
 import { LayerLifecycle } from '../data/lifecycle.js';
 import { LayerPresentation } from './layerPresentation.js';
+import { gateUnavailableLayers } from '../overcastAvailability.js';
 /** Register the application layer catalog before allowing state restoration. */
 export function createApplicationData({
   scene: { viewer, mapStackController },
@@ -10,9 +11,9 @@ export function createApplicationData({
   defer,
 }) {
   // Initialize data layer manager
-  const dataManager = new LayerLifecycle(viewer, {
-    allowQaRegistration,
-  });
+  const dataManager = gateUnavailableLayers(
+    new LayerLifecycle(viewer, { allowQaRegistration }),
+  );
   defer(async () => {
     await dataManager.destroyAll();
     if (dataManager.layers.size)
