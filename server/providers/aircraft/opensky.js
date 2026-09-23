@@ -60,6 +60,10 @@ function openskyAdaptiveTtlMs(remaining) {
 let _openskyAuthWarned = false;
 /** @type {boolean} Guards duplicate invalid-auth-mode warnings. */
 let _openskyAuthModeWarned = false;
+/** Upper bound on one OpenSky states request. */
+export const OPENSKY_STATES_TIMEOUT_MS = 6000;
+/** After a network failure, skip OpenSky this long and serve the fallback. */
+export const OPENSKY_UNREACHABLE_COOLDOWN_MS = 5 * 60 * 1000;
 /** Default auth mode when OPENSKY_AUTH_MODE env is unset. */
 const OPENSKY_AUTH_MODE_DEFAULT = 'oauth';
 /** Set of valid OPENSKY_AUTH_MODE values. */
@@ -470,9 +474,12 @@ export function openSkyProxy() {
           }
         }
 
+        // Bounded: an unreachable OpenSky (some hosts' IPs are refused) used
+        // to hold every request ~10 s before the regional fallback answered
+        // (Overcast production, 23 Sep 2026).
         let upstream = await fetch(
           'https://opensky-network.org/api/states/all?extended=1',
-          { headers },
+          { headers, signal: AbortSignal.timeout(OPENSKY_STATES_TIMEOUT_MS) },
         );
         // Auto-mode fallback: if OAuth was rejected, retry with Basic credentials
         if (
@@ -647,6 +654,12 @@ export function openSkyProxy() {
         res.end(body);
       } catch (e) {
         console.error('[OpenSky Proxy]', e.message);
+        // Unreachable or timed out: stop trying OpenSky for a while so the
+        // regional fallback answers at once instead of after every timeout.
+        _openskyCooldownUntil = Math.max(
+          _openskyCooldownUntil || 0,
+          Date.now() + OPENSKY_UNREACHABLE_COOLDOWN_MS,
+        );
         if (_openskyCacheBody) {
           const cachedMeta = _openskyCacheMeta || {
             requestedMode: normalizeOpenSkyAuthMode(
