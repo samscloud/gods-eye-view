@@ -18,6 +18,7 @@ import { createApplicationAwareness } from './layers/militaryAwareness.js';
 import { createApplicationFirms } from './layers/firms.js';
 import { createApplicationEarthquakes } from './layers/earthquakes.js';
 import { createApplicationCables } from './layers/submarineCables.js';
+import { createOvercastLayersLayer } from '../overcastLayers.js';
 import { createInfrastructureLayers } from '../data/infrastructure.js';
 import { localGeoJsonServices } from './localGeojsonServices.js';
 import { createBhoteKoshiEventLayer } from '../data/bhoteKoshiEvent.js';
@@ -130,6 +131,7 @@ export function createApplicationCatalog({
         }),
         ...createInfrastructureLayers(localGeoJsonServices),
         createApplicationCables({ source: sources.cables }),
+        createOvercastLayersLayer(),
         createApplicationFirms({
           surface,
           id: 'local-firms',

@@ -115,7 +115,7 @@ export function createApplicationTools({
     surfaceServices: operations.surface,
     requestRender: governorRequestRender,
   };
-  installOvercastBridge({ viewer, signal });
+  installOvercastBridge({ viewer, signal, dataManager });
   const debug = window.__godsEyeView;
   defer(() => {
     if (window.__godsEyeView === debug) delete window.__godsEyeView;

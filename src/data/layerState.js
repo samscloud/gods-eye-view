@@ -360,6 +360,13 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     token: 'i',
     disposition: 'enabled-only',
   }),
+  // Overcast's own server layers (FEMA, GDACS, NWS, conflicts…), drawn from
+  // the shared layer store; which ones is set by the host or ?layers=.
+  Object.freeze({
+    id: 'overcast-layers',
+    token: 'o',
+    disposition: 'enabled-only',
+  }),
   Object.freeze({
     id: 'radio',
     token: 'r',
