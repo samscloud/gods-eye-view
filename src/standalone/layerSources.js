@@ -1,5 +1,8 @@
-import { createAisStreamSource } from '../sources/live/standalone.js';
-import { createOvercastAircraftSource } from '../sources/live/overcast.js';
+import {
+  createOpenSkySource,
+  createAdsbLolSource,
+  createAisStreamSource,
+} from '../sources/live/standalone.js';
 import { createCctvSource } from '../layers/cctv/source.js';
 import { createRadioSource } from '../layers/radio/source.js';
 import { createTransitSource } from '../layers/transit/source.js';
@@ -17,9 +20,10 @@ export { createReferenceSources as createStandaloneReferenceSources } from '../s
 export function createStandaloneLayerSources() {
   return {
     ...createReferenceSources(),
-    // Overcast feeds: same data the Command Center uses.
-    flights: createOvercastAircraftSource({ scope: 'all' }),
-    military: createOvercastAircraftSource({ scope: 'mil' }),
+    // Aircraft and cameras: the ported feed plugins on the Overcast server
+    // (server/providers/overcast-feeds.js). Vessels: Overcast's AIS socket.
+    flights: createOpenSkySource(),
+    military: createAdsbLolSource(),
     vessels: createAisStreamSource({
       apiUrl: import.meta.env?.VITE_AIS_LIVE_API_URL || '/api/globe/ais-live',
     }),
