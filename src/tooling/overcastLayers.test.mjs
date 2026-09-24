@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { rowToPoint, sanitizeLayerIds, layerAccent, formatAge, overcastCardModel } from '../overcastLayers.js';
+import { rowToPoint, sanitizeLayerIds, layerAccent, formatAge, overcastCardModel, dedupePoints } from '../overcastLayers.js';
 import { planLayers } from '../overcastBridge.js';
 
 test('sanitizeLayerIds keeps well-formed ids, dedupes, drops junk', () => {
@@ -57,4 +57,14 @@ test('reference rows say so instead of an age, and unknown times say not reporte
   assert.match(overcastCardModel(ref, { name: 'Bases' }).selected.details[1], /reference table/);
   assert.equal(formatAge('not a date'), '');
   assert.equal(formatAge('2026-09-24T02:30:00Z', Date.parse('2026-09-24T03:00:00Z')), '30m');
+});
+
+test('a repeated event id draws once instead of failing the layer', () => {
+  const rows = [
+    { event_id: 'fema-5676', geo: { lat: 30, lon: -90 }, attributes: { title: 'A' } },
+    { event_id: 'fema-5676', geo: { lat: 31, lon: -91 }, attributes: { title: 'B' } },
+    { event_id: 'fema-5677', geo: { lat: 32, lon: -92 }, attributes: { title: 'C' } },
+  ];
+  const pts = dedupePoints(rows.map((r) => rowToPoint('fema-disasters', r)).filter(Boolean));
+  assert.deepEqual(pts.map((p) => p.label), ['A', 'C']);
 });

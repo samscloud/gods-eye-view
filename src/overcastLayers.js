@@ -95,6 +95,24 @@ export function rowToPoint(layerId, row) {
 }
 
 const SEVERITY_RANK = Object.freeze({ critical: 3, high: 2, medium: 1, low: 0 });
+
+/**
+ * One point per id. Feeds can repeat an event id (OpenFEMA lists one
+ * declaration per designated area under the same id), and a repeated entity
+ * id makes Cesium throw, which failed the whole layer on production
+ * (24 Sep 2026: "An entity with id fema-disasters:fema-5676 already exists").
+ * The first row wins. Exported for tests.
+ */
+export function dedupePoints(points) {
+  const seen = new Set();
+  const out = [];
+  for (const p of points) {
+    if (seen.has(p.id)) continue;
+    seen.add(p.id);
+    out.push(p);
+  }
+  return out;
+}
 const AMBIENT_COHORT = 30;
 const AMBIENT_CANDIDATES = 600;
 const AMBIENT_FADE_M = 2_500_000;
@@ -430,7 +448,7 @@ export function createOvercastLayersLayer({ fetchImpl = fetchLayer, fetchStylesI
         }
         const data = r.value;
         const rows = Array.isArray(data?.events) ? data.events.slice(0, MAX_ROWS_PER_LAYER) : [];
-        const pts = rows.map((row) => rowToPoint(id, row)).filter(Boolean);
+        const pts = dedupePoints(rows.map((row) => rowToPoint(id, row)).filter(Boolean));
         all.push(...pts);
         perLayer.set(id, {
           count: pts.length,
