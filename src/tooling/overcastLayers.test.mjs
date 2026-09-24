@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { rowToPoint, sanitizeLayerIds, layerAccent, formatAge, overcastCardModel, dedupePoints } from '../overcastLayers.js';
+import { cardMaxDistance, rowToPoint, sanitizeLayerIds, layerAccent, formatAge, overcastCardModel, dedupePoints } from '../overcastLayers.js';
 import { planLayers } from '../overcastBridge.js';
 
 test('sanitizeLayerIds keeps well-formed ids, dedupes, drops junk', () => {
@@ -67,4 +67,11 @@ test('a repeated event id draws once instead of failing the layer', () => {
   ];
   const pts = dedupePoints(rows.map((r) => rowToPoint('fema-disasters', r)).filter(Boolean));
   assert.deepEqual(pts.map((p) => p.label), ['A', 'C']);
+});
+
+test('critical and high cards stay visible from the whole-globe view; others appear on zoom', () => {
+  assert.ok(cardMaxDistance('critical') >= 20_000_000);
+  assert.ok(cardMaxDistance('high') >= 20_000_000);
+  assert.equal(cardMaxDistance('medium'), 2_500_000);
+  assert.equal(cardMaxDistance(undefined), 2_500_000);
 });

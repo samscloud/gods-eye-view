@@ -116,6 +116,20 @@ export function dedupePoints(points) {
 const AMBIENT_COHORT = 30;
 const AMBIENT_CANDIDATES = 600;
 const AMBIENT_FADE_M = 2_500_000;
+/*
+ * Gary B, 24 Sep 2026: from the whole-globe view no detail tags showed at
+ * all, because every card faded out 2,500 km from the camera and the globe
+ * view sits ~10,000-20,000 km out. Critical and high items now keep their
+ * card from the globe view down; the rest still appear as you zoom in. The
+ * cohort limit (AMBIENT_COHORT) and collision capacity keep it uncluttered,
+ * and horizon culling hides the far side.
+ */
+const CARD_DISTANCE_BY_SEVERITY = Object.freeze({ critical: 40_000_000, high: 40_000_000 });
+
+/** How far from the camera an item's detail card stays visible. Exported for tests. */
+export function cardMaxDistance(severity) {
+  return CARD_DISTANCE_BY_SEVERITY[severity] ?? AMBIENT_FADE_M;
+}
 
 /** Short age from an ISO time: "12m", "5h", "3d"; '' when unknown. Exported for tests. */
 export function formatAge(iso, nowMs = Date.now()) {
@@ -261,7 +275,7 @@ export function createOvercastLayersLayer({ fetchImpl = fetchLayer, fetchStylesI
         leaderOffsetPx: 10,
         verticalOnly: true,
         viewportMargin: 4,
-        maxDistance: AMBIENT_FADE_M,
+        maxDistance: cardMaxDistance(p.severity),
         distanceFadeStartRatio: 0.7,
         edgeFade: 'keyhole',
         horizonCull: true,
