@@ -1,6 +1,6 @@
 import { catalogControlServices } from './catalog.js';
 import { StyleManager } from '../ui/composition.js';
-import { flyToAustin } from '../camera.js';
+import { flyToAustin, setOvercastEmbedStartView } from '../camera.js';
 import { initCockpitCloudEffects } from '../cockpitCloudEffects.js';
 
 /** Construct the existing controls and camera presentation. */
@@ -40,7 +40,11 @@ export function createApplicationControls({
   defer(() => cockpitCloudEffects?.destroy());
 
   // If no share link state, do default fly-to Austin
-  if (!styleManager.hasShareState) {
+  if (!styleManager.hasShareState && globalThis.document?.documentElement?.classList?.contains('overcast-embed')) {
+    // Inside the Command Center: open on the whole Earth (see camera.js).
+    loaderStatus.textContent = 'Opening the globe...';
+    defer(setOvercastEmbedStartView(viewer));
+  } else if (!styleManager.hasShareState) {
     loaderStatus.textContent = 'Flying to Austin, TX...';
     defer(flyToAustin(viewer));
   } else {

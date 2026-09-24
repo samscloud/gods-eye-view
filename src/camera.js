@@ -80,3 +80,27 @@ export function flyToAustin(viewer) {
     if (!viewer.isDestroyed()) viewer.camera.cancelFlight();
   };
 }
+
+/**
+ * Start view inside the Overcast Command Center (/globe/?embed=1).
+ *
+ * Gary B, 24 Sep 2026, could not see any Overcast layer markers or detail
+ * cards: the embed opened with the standalone fly-in to Austin at 600 m,
+ * where every conflict, disaster and alert is below the horizon. The
+ * Command Center map is a world view, so the embedded globe opens on the
+ * whole Earth, centred over Europe/Africa/Middle East where most of the
+ * live Overcast layers sit.
+ */
+export const OVERCAST_EMBED_START = Object.freeze({ lon: 20, lat: 25, height: 20_000_000 });
+
+export function setOvercastEmbedStartView(viewer) {
+  viewer.camera.setView({
+    destination: Cesium.Cartesian3.fromDegrees(
+      OVERCAST_EMBED_START.lon,
+      OVERCAST_EMBED_START.lat,
+      OVERCAST_EMBED_START.height,
+    ),
+    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 },
+  });
+  return () => {};
+}
