@@ -13,8 +13,28 @@
  * and the standalone /globe/ page reads ?layers=a,b,c. Nothing here fetches a
  * provider directly; a layer the server reports as unavailable is listed with
  * its reason and draws nothing.
+ *
+ * Presentation follows the globe's own layers (Gary B, 24 Sep 2026: "it
+ * needs to match what they've already done"): each item is a billboard mark
+ * from the Overcast icon set (GET /api/globe/overcast-icons), ambient
+ * tactical cards with a title and a detail line through the shared world
+ * overlay (as FIRMS and vessels do), and a click selects it into the shared
+ * context store so the tracked readout card and the context panel show it
+ * like any native contact. No private DOM card.
  */
 import * as Cesium from 'cesium';
+import {
+  clearSelectedEntityContextForLayer,
+  registerEntityContext,
+  removeEntityContextsForLayer,
+  selectEntityContext,
+} from './data/contextStore.js';
+import { isPointerFree } from './data/inputOwnership.js';
+import {
+  clearOverlaySource,
+  setOverlayEntries,
+  setOverlaySourceVisible,
+} from './overlays/worldOverlay.js';
 
 export const OVERCAST_LAYERS_ID = 'overcast-layers';
 const ID_GRAMMAR = /^[a-z0-9-]{1,48}$/;
@@ -73,6 +93,72 @@ export function rowToPoint(layerId, row) {
   };
 }
 
+const SEVERITY_RANK = Object.freeze({ critical: 3, high: 2, medium: 1, low: 0 });
+const AMBIENT_COHORT = 30;
+const AMBIENT_CANDIDATES = 600;
+const AMBIENT_FADE_M = 2_500_000;
+
+/** Short age from an ISO time: "12m", "5h", "3d"; '' when unknown. Exported for tests. */
+export function formatAge(iso, nowMs = Date.now()) {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return '';
+  const min = Math.max(0, Math.round((nowMs - t) / 60_000));
+  if (min < 60) return `${min}m`;
+  if (min < 48 * 60) return `${Math.round(min / 60)}h`;
+  return `${Math.round(min / 1440)}d`;
+}
+
+const trim = (text, max) => {
+  const s = String(text || '').trim();
+  return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+};
+
+/**
+ * Ambient card (title + one detail line) and selected/tracked model (title +
+ * full details), in the same shape the FIRMS and vessel cards use. Pure;
+ * exported for tests.
+ * @param {object} p Point from rowToPoint.
+ * @param {{name?: string, accent?: string}} style Layer style from the icon endpoint.
+ * @param {number} [nowMs]
+ */
+export function overcastCardModel(p, style = {}, nowMs = Date.now()) {
+  const layerName = String(style.name || p.layerId.replace(/-/g, ' ')).toUpperCase();
+  const age = p.reference ? 'REFERENCE' : formatAge(p.time, nowMs);
+  const sev = p.severity === 'critical' || p.severity === 'high' ? p.severity.toUpperCase() : '';
+  const when = p.reference
+    ? 'reference table'
+    : p.time
+      ? `${p.time.replace('T', ' ').slice(0, 16)} UTC`
+      : 'time not reported';
+  return {
+    ambient: {
+      title: trim(p.label, 28),
+      details: [[layerName, sev, age].filter(Boolean).join(' · ')],
+    },
+    selected: {
+      title: trim(p.label, 44),
+      details: [
+        [layerName, sev].filter(Boolean).join(' · '),
+        [p.source, when].filter(Boolean).join(' · '),
+        `${p.lat.toFixed(3)}, ${p.lon.toFixed(3)}`,
+      ],
+    },
+    accent: style.accent || hexTriplet(layerAccent(p.layerId)),
+  };
+}
+
+function hexTriplet(hex) {
+  const n = parseInt(String(hex).replace('#', ''), 16);
+  return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+}
+
+async function fetchStyles() {
+  const res = await fetch('/api/globe/overcast-icons', { credentials: 'same-origin' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const body = await res.json();
+  return body?.layers && typeof body.layers === 'object' ? body.layers : {};
+}
+
 async function fetchLayer(layerId, signal) {
   const input = encodeURIComponent(JSON.stringify({ 0: { json: { layerId } } }));
   const res = await fetch(`/api/trpc/osint.layers.getData?batch=1&input=${input}`, { signal, credentials: 'same-origin' });
@@ -83,89 +169,152 @@ async function fetchLayer(layerId, signal) {
   return data;
 }
 
-export function createOvercastLayersLayer({ fetchImpl = fetchLayer } = {}) {
+export function createOvercastLayersLayer({ fetchImpl = fetchLayer, fetchStylesImpl = fetchStyles } = {}) {
   let viewer = null;
   let ds = null;
   let enabled = false;
   let wanted = [];
   let request = null;
   let handler = null;
-  let card = null;
+  let styles = null;
+  let stylesLoad = null;
+  let selectedId = null;
+  let removeCameraListener = null;
   const perLayer = new Map(); // id -> { count, kind, error, asOf }
   const points = new Map(); // entity id -> point
   let lastUpdate = null;
   let lastError = null;
 
-  function closeCard() {
-    card?.remove();
-    card = null;
+  function loadStyles() {
+    if (styles) return Promise.resolve(styles);
+    stylesLoad ??= fetchStylesImpl()
+      .then((s) => (styles = s))
+      .catch(() => (styles = {})) // marks fall back to accent dots; cards still work
+      .finally(() => (stylesLoad = null));
+    return stylesLoad;
   }
 
-  function showCard(p, screen) {
-    closeCard();
-    card = document.createElement('div');
-    card.className = 'overcast-layer-card';
-    const title = document.createElement('div');
-    title.className = 'overcast-layer-card__title';
-    title.textContent = p.label;
-    const meta = document.createElement('div');
-    meta.className = 'overcast-layer-card__meta';
-    const when = p.time && !p.reference ? `${p.time.replace('T', ' ').slice(0, 16)} UTC` : p.reference ? 'reference table' : '';
-    meta.textContent = [p.layerId.toUpperCase().replace(/-/g, ' '), p.source, when].filter(Boolean).join(' · ');
-    card.append(title, meta);
-    if (p.url) {
-      const a = document.createElement('a');
-      a.href = p.url;
-      a.target = '_blank';
-      a.rel = 'noreferrer';
-      a.textContent = 'Source ↗';
-      a.className = 'overcast-layer-card__link';
-      card.append(a);
-    }
-    const close = document.createElement('button');
-    close.type = 'button';
-    close.className = 'overcast-layer-card__close';
-    close.setAttribute('aria-label', 'Close');
-    close.textContent = '×';
-    close.addEventListener('click', closeCard);
-    card.append(close);
-    card.style.left = `${Math.round(screen.x + 12)}px`;
-    card.style.top = `${Math.round(screen.y + 12)}px`;
-    viewer.container.append(card);
+  const styleFor = (layerId) => styles?.[layerId] || {};
+
+  function iconFor(p) {
+    const s = styleFor(p.layerId);
+    if (p.severity === 'critical') return s.iconCritical || s.icon;
+    if (p.severity === 'high') return s.iconHigh || s.icon;
+    return s.icon;
+  }
+
+  /** Ambient cards through the shared world overlay, like FIRMS and vessels. */
+  function publishCards() {
+    if (!enabled) return;
+    const now = Date.now();
+    const ranked = [...points.values()]
+      .filter((p) => p.id !== selectedId)
+      .sort((a, b) => (SEVERITY_RANK[b.severity] ?? 0) - (SEVERITY_RANK[a.severity] ?? 0))
+      .slice(0, AMBIENT_CANDIDATES);
+    const entries = ranked.map((p) => {
+      const m = overcastCardModel(p, styleFor(p.layerId), now);
+      return {
+        id: `overcast:${p.id}`,
+        position: Cesium.Cartesian3.fromDegrees(p.lon, p.lat),
+        variant: 'card',
+        cardStyle: 'tactical',
+        collisionGroup: 'ambient-card',
+        title: m.ambient.title,
+        details: m.ambient.details,
+        accent: m.accent,
+        priority: (SEVERITY_RANK[p.severity] ?? 0) * 10,
+        gapPx: 16,
+        leaderOffsetPx: 10,
+        verticalOnly: true,
+        viewportMargin: 4,
+        maxDistance: AMBIENT_FADE_M,
+        distanceFadeStartRatio: 0.7,
+        edgeFade: 'keyhole',
+        horizonCull: true,
+        terrainOcclusion: false,
+        interactive: true,
+        accessibilityLabel: `Select ${m.ambient.title}, ${m.ambient.details.join(', ')}`,
+        activate: () => select(p.id),
+      };
+    });
+    setOverlayEntries(OVERCAST_LAYERS_ID, entries, { cohortLimit: AMBIENT_COHORT, collisionCapacity: AMBIENT_COHORT, moving: false });
+    setOverlaySourceVisible(OVERCAST_LAYERS_ID, true);
+  }
+
+  function select(id) {
+    const entity = ds?.entities.getById(id);
+    if (!entity) return false;
+    selectedId = id;
+    selectEntityContext(entity); // tracked readout card + context panel, as native layers
+    publishCards();
+    viewer?.scene?.requestRender?.();
+    return true;
+  }
+
+  function deselect() {
+    if (!selectedId) return;
+    selectedId = null;
+    clearSelectedEntityContextForLayer(OVERCAST_LAYERS_ID);
+    publishCards();
   }
 
   function draw(allPoints) {
+    const now = Date.now();
     ds.entities.suspendEvents();
     ds.entities.removeAll();
+    removeEntityContextsForLayer(OVERCAST_LAYERS_ID, selectedId ? { retainIds: new Set([selectedId]) } : undefined);
     points.clear();
     for (const p of allPoints) {
       points.set(p.id, p);
-      ds.entities.add({
+      const style = styleFor(p.layerId);
+      const icon = iconFor(p);
+      const position = Cesium.Cartesian3.fromDegrees(p.lon, p.lat);
+      const entity = ds.entities.add({
         id: p.id,
-        position: Cesium.Cartesian3.fromDegrees(p.lon, p.lat),
-        point: {
-          pixelSize: p.severity === 'critical' ? 11 : p.severity === 'high' ? 9 : 7,
-          color: Cesium.Color.fromCssColorString(SEVERITY_COLOR[p.severity]).withAlpha(0.92),
-          outlineColor: Cesium.Color.fromCssColorString(layerAccent(p.layerId)),
-          outlineWidth: 2,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        },
-        label: {
-          text: p.label.length > 48 ? `${p.label.slice(0, 47)}…` : p.label,
-          font: '11px "Roboto Mono", monospace',
-          fillColor: Cesium.Color.fromCssColorString('#e5ebf3'),
-          outlineColor: Cesium.Color.BLACK,
-          outlineWidth: 3,
-          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-          pixelOffset: new Cesium.Cartesian2(10, -10),
-          horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
-          // Names only when close enough to read them without clutter.
-          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 1_500_000),
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        position,
+        billboard: icon
+          ? {
+              image: icon,
+              width: p.severity === 'critical' ? 30 : 26,
+              height: p.severity === 'critical' ? 30 : 26,
+              verticalOrigin: Cesium.VerticalOrigin.CENTER,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            }
+          : undefined,
+        point: icon
+          ? undefined
+          : {
+              pixelSize: 9,
+              color: Cesium.Color.fromCssColorString(layerAccent(p.layerId)),
+              outlineColor: Cesium.Color.fromCssColorString('#0a0f1a'),
+              outlineWidth: 2,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+      });
+      const m = overcastCardModel(p, style, now);
+      entity.gevTrackedId = `overcast-layers:${p.id}`;
+      entity.gevDisplayPosition = () => position;
+      entity.gevLabelModel = { title: m.selected.title, details: m.selected.details, accent: m.accent, cardStyle: 'tactical' };
+      registerEntityContext(entity, {
+        id: p.id,
+        layerId: OVERCAST_LAYERS_ID,
+        layerName: style.name ? `Overcast · ${style.name}` : 'Overcast Layers',
+        source: p.source || 'Overcast',
+        label: p.label,
+        latitude: p.lat,
+        longitude: p.lon,
+        properties: {
+          overcastLayer: p.layerId,
+          severity: p.severity,
+          time: p.time || null,
+          reference: p.reference,
+          url: p.url || null,
         },
       });
     }
     ds.entities.resumeEvents();
+    if (selectedId && !points.has(selectedId)) deselect();
+    publishCards();
     viewer?.scene?.requestRender?.();
   }
 
@@ -181,24 +330,33 @@ export function createOvercastLayersLayer({ fetchImpl = fetchLayer } = {}) {
       ds = new Cesium.CustomDataSource(OVERCAST_LAYERS_ID);
       ds.show = false;
       ds.clustering.enabled = true;
-      ds.clustering.pixelRange = 28;
-      ds.clustering.minimumClusterSize = 4;
+      ds.clustering.pixelRange = 24;
+      ds.clustering.minimumClusterSize = 5;
       v.dataSources.add(ds);
     },
 
     enable() {
       enabled = true;
       if (ds) ds.show = true;
+      void loadStyles();
       if (!handler && viewer) {
         handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
         handler.setInputAction((click) => {
+          if (!isPointerFree()) return; // a tool owns the pointer
           const picked = viewer.scene.pick(click.position);
-          const id = picked?.id?.id;
-          const p = typeof id === 'string' ? points.get(id) : null;
-          if (p) showCard(p, click.position);
-          else closeCard();
+          const id = typeof picked?.id?.id === 'string' ? picked.id.id : null;
+          if (id && points.has(id)) {
+            if (id === selectedId) deselect();
+            else select(id);
+          } else if (selectedId) {
+            deselect();
+          }
         }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
       }
+      if (!removeCameraListener && viewer?.camera?.moveEnd) {
+        removeCameraListener = viewer.camera.moveEnd.addEventListener(() => publishCards());
+      }
+      publishCards();
     },
 
     disable() {
@@ -208,7 +366,11 @@ export function createOvercastLayersLayer({ fetchImpl = fetchLayer } = {}) {
       if (ds) ds.show = false;
       handler?.destroy();
       handler = null;
-      closeCard();
+      removeCameraListener?.();
+      removeCameraListener = null;
+      deselect();
+      clearOverlaySource(OVERCAST_LAYERS_ID);
+      setOverlaySourceVisible(OVERCAST_LAYERS_ID, false);
     },
 
     /** Which Overcast layers to draw. Returns the accepted ids. */
@@ -228,7 +390,10 @@ export function createOvercastLayersLayer({ fetchImpl = fetchLayer } = {}) {
       request?.abort();
       const ctl = new AbortController();
       request = ctl;
-      const results = await Promise.allSettled(wanted.map((id) => fetchImpl(id, ctl.signal)));
+      const [results] = await Promise.all([
+        Promise.allSettled(wanted.map((id) => fetchImpl(id, ctl.signal))),
+        loadStyles(),
+      ]);
       if (ctl.signal.aborted || request !== ctl) return false;
       const all = [];
       results.forEach((r, i) => {
@@ -257,6 +422,7 @@ export function createOvercastLayersLayer({ fetchImpl = fetchLayer } = {}) {
 
     destroy(v = viewer) {
       layer.disable();
+      removeEntityContextsForLayer(OVERCAST_LAYERS_ID);
       if (ds && v) v.dataSources.remove(ds, true);
       ds = null;
       viewer = null;

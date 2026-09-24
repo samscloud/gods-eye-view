@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { rowToPoint, sanitizeLayerIds, layerAccent } from '../overcastLayers.js';
+import { rowToPoint, sanitizeLayerIds, layerAccent, formatAge, overcastCardModel } from '../overcastLayers.js';
 import { planLayers } from '../overcastBridge.js';
 
 test('sanitizeLayerIds keeps well-formed ids, dedupes, drops junk', () => {
@@ -36,4 +36,25 @@ test('hostLayerGuard keeps host-managed layers as the host set them during resto
   assert.equal(guard({ layerId: 'overcast-layers', enabled: false, origin: 'user' }), null);
   assert.equal(guard({ layerId: 'traffic', enabled: true, origin: 'local-restore' }), null);
   assert.equal(hostLayerGuard(() => null)({ layerId: 'overcast-layers', enabled: false, origin: 'local-restore' }), null);
+});
+
+test('Overcast items get the same card shape as FIRMS and vessel cards', () => {
+  const now = Date.parse('2026-09-24T03:00:00Z');
+  const p = rowToPoint('conflicts', {
+    event_id: 'x1', geo: { lat: 48.5, lon: 37.9 }, start_ts: '2026-09-24T01:00:00Z',
+    severity: { label: 'critical' }, source: { provider_name: 'ACLED' }, attributes: { title: 'Shelling near Bakhmut reported by local authorities' },
+  });
+  const m = overcastCardModel(p, { name: 'Conflicts', accent: '248, 113, 113' }, now);
+  assert.equal(m.ambient.title, 'Shelling near Bakhmut repor…');
+  assert.deepEqual(m.ambient.details, ['CONFLICTS · CRITICAL · 2h']);
+  assert.deepEqual(m.selected.details, ['CONFLICTS · CRITICAL', 'ACLED · 2026-09-24 01:00 UTC', '48.500, 37.900']);
+  assert.equal(m.accent, '248, 113, 113');
+});
+
+test('reference rows say so instead of an age, and unknown times say not reported', () => {
+  const ref = rowToPoint('bases', { event_id: 'b', geo: { lat: 11.5, lon: 43.1 }, attributes: { name: 'Camp Lemonnier', reference: true } });
+  assert.match(overcastCardModel(ref, { name: 'Bases' }).ambient.details[0], /REFERENCE/);
+  assert.match(overcastCardModel(ref, { name: 'Bases' }).selected.details[1], /reference table/);
+  assert.equal(formatAge('not a date'), '');
+  assert.equal(formatAge('2026-09-24T02:30:00Z', Date.parse('2026-09-24T03:00:00Z')), '30m');
 });
