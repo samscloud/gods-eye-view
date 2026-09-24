@@ -103,3 +103,8 @@ test('the drawer is styled for phones (bottom sheet) and wide panels (left drawe
   const html = readFileSync(new URL('../ui/templates/scene-chrome.html', import.meta.url), 'utf8');
   assert.match(html, /id="globe-controls-toggle"[\s\S]*?>tune</);
 });
+
+test('the embed hides the globe\'s own Data Layers panel and clear button (the Command Center chooses layers)', () => {
+  const css = readFileSync(new URL('../ui/styles/overcast-embed.css', import.meta.url), 'utf8');
+  assert.match(css, /html\.overcast-embed #data-panel,\s*html\.overcast-embed #clear-selected-layers \{\s*display: none !important;/);
+});

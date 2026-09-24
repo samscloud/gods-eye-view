@@ -2,7 +2,7 @@
  * Globe controls drawer for the Command Center embed (/globe/?embed=1).
  *
  * Gary B, 24 Sep 2026 (phone screenshot): inside the Command Center the
- * globe's own panels (Data Layers, Scenes, CCTV, Display, Context) and the
+ * globe's own panels (Scenes, CCTV, Display, Context) and the
  * command dock (location, AI agent, presets) covered the map. They are
  * settings, not the picture, so in the embed they live behind one button in
  * the top action row, next to share / tilt / north / globe, and open when
@@ -17,7 +17,7 @@ export const CONTROLS_OPEN_CLASS = 'oc-controls-open';
 
 /** Elements that move into the drawer, in display order. Exported for tests. */
 export const DRAWER_SECTIONS = Object.freeze([
-  'left-panel-stack', // Data Layers, Scenes, CCTV
+  'left-panel-stack', // Scenes, CCTV (Data Layers is hidden: the host chooses layers)
   'right-context-rail', // Display, Context
 ]);
 /** The command dock (Location, AI agent, Presets) pins to the drawer's foot:

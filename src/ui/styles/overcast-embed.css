@@ -369,3 +369,16 @@ html.oc-controls-open #oc-controls-sheet {
     transition: none !important;
   }
 }
+
+/*
+ * Layers are chosen in the Command Center (its LAYERS menu drives the globe
+ * through overcastBridge.js: flights, military air, vessels, cameras and
+ * every Overcast layer). Gary B, 24 Sep 2026: "we no longer need layers if
+ * we have connected our layers". The globe's own Data Layers panel and its
+ * clear-layers button would be a second, conflicting switchboard, so the
+ * embed hides both. The full-screen globe keeps them.
+ */
+html.overcast-embed #data-panel,
+html.overcast-embed #clear-selected-layers {
+  display: none !important;
+}
