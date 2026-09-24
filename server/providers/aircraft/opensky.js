@@ -302,7 +302,88 @@ async function fetchAdsbLolPointFallback(req) {
   }
 }
 
+/*
+ * Worldwide adsb.lol fallback (Overcast, 24 Sep 2026).
+ *
+ * OpenSky refuses Overcast production's server IP, so every poll landed on
+ * the 250 nm point fallback: live on production, /api/opensky returned 655
+ * aircraft around the camera while adsb.lol's worldwide query
+ * (lat/0/lon/0/dist/10000, which Overcast's own flights feed already uses)
+ * returned 11,347. Gary B: "our planes show only a certain focused amount".
+ * One shared worldwide frame is fetched at most every ADSBLOL_GLOBAL_CACHE_MS
+ * for every client; the 250 nm point query stays as the fallback's fallback.
+ */
+const ADSBLOL_GLOBAL_URL = 'https://api.adsb.lol/v2/lat/0/lon/0/dist/10000';
+const ADSBLOL_GLOBAL_CACHE_MS = 20000;
+/** A stale worldwide frame older than this is not served; the regional one is. */
+const ADSBLOL_GLOBAL_STALE_MAX_MS = 5 * 60 * 1000;
+const ADSBLOL_GLOBAL_TIMEOUT_MS = 20000;
+const ADSBLOL_GLOBAL_MAX_RESPONSE_BYTES = 48 * 1024 * 1024;
+let _adsbLolGlobal = null;
+const _adsbLolGlobalInFlight = new Map();
+
+async function fetchAdsbLolGlobalFallback() {
+  const cached = _adsbLolGlobal;
+  const now = Date.now();
+  if (cached && now - cached.cachedAt < ADSBLOL_GLOBAL_CACHE_MS) {
+    return { ...cached, cacheStatus: 'HIT' };
+  }
+  const request = coalesceProxyRequest(_adsbLolGlobalInFlight, 'global', async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), ADSBLOL_GLOBAL_TIMEOUT_MS);
+    try {
+      const upstream = await fetch(ADSBLOL_GLOBAL_URL, {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'gods-eye-view-adsblol-global-fallback/1.0',
+        },
+        signal: controller.signal,
+      });
+      if (!upstream.ok) throw new Error(`upstream HTTP ${upstream.status}`);
+      const payload = await readResponseJsonCapped(upstream, ADSBLOL_GLOBAL_MAX_RESPONSE_BYTES);
+      const normalized = normalizeAdsbLolPointResponse(payload);
+      if (!normalized.states.length) throw new Error('empty worldwide frame');
+      const record = {
+        body: JSON.stringify(normalized),
+        cachedAt: Date.now(),
+        count: normalized.states.length,
+      };
+      _adsbLolGlobal = record;
+      return record;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  });
+  try {
+    const record = await request.promise;
+    return { ...record, cacheStatus: request.shared ? 'INFLIGHT' : 'MISS' };
+  } catch (error) {
+    if (!request.shared && error?.name !== 'AbortError') {
+      console.warn('[adsb.lol Flights Global Fallback]', error?.message || error);
+    }
+    return cached && now - cached.cachedAt < ADSBLOL_GLOBAL_STALE_MAX_MS
+      ? { ...cached, cacheStatus: 'STALE' }
+      : null;
+  }
+}
+
 async function serveAdsbLolPointFallback(req, res, requestedMode, reason) {
+  const global = await fetchAdsbLolGlobalFallback();
+  if (global) {
+    res.writeHead(200, {
+      ...buildOpenSkyHeaders({
+        cacheStatus: global.cacheStatus,
+        requestedMode,
+        usedMode: 'adsblol-global',
+        reason,
+      }),
+      'X-Flight-Source': 'adsb.lol',
+      'X-Flight-Coverage': 'worldwide fallback',
+      'X-Flight-Count': String(global.count),
+    });
+    res.end(global.body);
+    return true;
+  }
   const fallback = await fetchAdsbLolPointFallback(req);
   if (!fallback) return false;
   res.writeHead(200, {

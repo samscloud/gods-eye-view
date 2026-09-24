@@ -136,7 +136,44 @@ test('OpenSky state and track routes share tokens, retain cache and use regional
   );
   assert.equal(fallback.statusCode, 200);
   assert.equal(fallback.headers['x-flight-source'], 'adsb.lol');
+  // Worldwide first: OpenSky refuses Overcast production, and the 250 nm
+  // point fallback left the rest of the globe empty (Overcast, 24 Sep 2026).
+  assert.equal(fallback.headers['x-flight-coverage'], 'worldwide fallback');
   assert.equal(JSON.parse(fallback.body).states[0][0], 'abc123');
+});
+
+test('OpenSky fallback: worldwide adsb.lol first, the 250 nm point query only if that fails', async (t) => {
+  environment(t, { OPENSKY_AUTH_MODE: 'anon', OPENSKY_USERNAME: undefined, OPENSKY_PASSWORD: undefined });
+  t.mock.method(console, 'log', () => {});
+  t.mock.method(console, 'warn', () => {});
+  const now = Date.now();
+  const urls = [];
+  let globalUp = true;
+  t.mock.method(globalThis, 'fetch', async (url) => {
+    urls.push(url);
+    if (url.includes('/states/')) return new Response('', { status: 503 });
+    if (url.includes('/lat/0/lon/0/dist/10000')) {
+      if (!globalUp) return new Response('', { status: 502 });
+      return Response.json({ now: now / 1000, ac: [
+        { hex: 'aaa111', lat: 51, lon: 0, alt_baro: 30000 },
+        { hex: 'bbb222', lat: -33, lon: 151, alt_baro: 35000 },
+      ] });
+    }
+    if (url.includes('/dist/250'))
+      return Response.json({ now: now / 1000, ac: [{ hex: 'ccc333', lat: 30, lon: -97, alt_baro: 10000 }] });
+    throw Error(`Unexpected URL: ${url}`);
+  });
+  const mod = await import(`../../server/providers/aircraft/opensky.js?worldwide=${now}`);
+  const worldwide = await install(mod.openSkyProxy())('/api/opensky', '?lat=30&lon=-97');
+  assert.equal(worldwide.headers['x-flight-coverage'], 'worldwide fallback');
+  assert.deepEqual(JSON.parse(worldwide.body).states.map((s) => s[0]), ['aaa111', 'bbb222']);
+  assert.ok(!urls.some((u) => u.includes('/dist/250')), 'no regional call while worldwide works');
+
+  globalUp = false;
+  const mod2 = await import(`../../server/providers/aircraft/opensky.js?regional=${now}`);
+  const regional = await install(mod2.openSkyProxy())('/api/opensky', '?lat=30&lon=-97');
+  assert.equal(regional.headers['x-flight-coverage'], '250nm regional fallback');
+  assert.equal(JSON.parse(regional.body).states[0][0], 'ccc333');
 });
 
 test('military aircraft route preserves fresh cache and stale response after upstream failure', async (t) => {

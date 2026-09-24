@@ -28,3 +28,18 @@ html.overcast-embed #title-bar .title-logo svg {
 html.overcast-embed #first-run-launcher {
   display: none !important;
 }
+
+/*
+ * Compact attribution in the Command Center panel (Gary B, 24 Sep 2026: make
+ * the Cesium credit small, like the other map credits there). The credit
+ * stays visible and clickable, as Cesium and Google require; only the logos
+ * are scaled down (16 px tall, the Google logo's own size) and the text is 9 px.
+ */
+html.overcast-embed #cesium-credits {
+  font-size: 9px;
+}
+html.overcast-embed #cesium-credits img {
+  max-height: 16px;
+  width: auto;
+  vertical-align: middle;
+}
