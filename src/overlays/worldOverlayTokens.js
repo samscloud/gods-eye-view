@@ -6,8 +6,15 @@
  * presentation values.
  */
 
-/** Shared visual tokens used by every world-overlay source. */
-export const WORLD_OVERLAY_STYLE = Object.freeze({
+/**
+ * Shared visual tokens used by every world-overlay source.
+ *
+ * Not frozen: Overcast re-themes the colour tokens at runtime
+ * (applyWorldOverlayTheme, from src/overcastTheme.js). Fonts, radii and
+ * widths never change; painters read the object on every frame, so a theme
+ * change lands on the next paint.
+ */
+export const WORLD_OVERLAY_STYLE = ({
   background: 'rgba(4, 12, 16, 0.82)',
   selectedBackground: 'rgba(5, 18, 24, 0.94)',
   border: 'rgba(190, 232, 242, 0.18)',
@@ -29,6 +36,54 @@ export const WORLD_OVERLAY_STYLE = Object.freeze({
   anchorDotStroke: 'rgba(4, 12, 16, 0.96)',
   leaderWidth: 1.35,
 });
+
+const DEFAULT_OVERLAY_COLORS = Object.freeze({
+  background: WORLD_OVERLAY_STYLE.background,
+  selectedBackground: WORLD_OVERLAY_STYLE.selectedBackground,
+  border: WORLD_OVERLAY_STYLE.border,
+  selectedBorder: WORLD_OVERLAY_STYLE.selectedBorder,
+  title: WORLD_OVERLAY_STYLE.title,
+  detail: WORLD_OVERLAY_STYLE.detail,
+  leader: WORLD_OVERLAY_STYLE.leader,
+  accent: WORLD_OVERLAY_STYLE.accent,
+  anchorDotStroke: WORLD_OVERLAY_STYLE.anchorDotStroke,
+});
+
+const rgbOf = (hex) => {
+  const h = String(hex || '').replace('#', '');
+  if (!/^[0-9a-f]{6}$/i.test(h)) return null;
+  const n = parseInt(h, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+
+/**
+ * Re-colour the shared card chrome from an Overcast theme. Plate alphas stay
+ * exactly as tuned (CARD_PLATE_ALPHA etc.); only hues change. Pass null to
+ * restore the globe's own palette.
+ * @param {{accent:string, text:string, muted?:string, header:string}|null} tokens Hex colours.
+ */
+export function applyWorldOverlayTheme(tokens) {
+  const a = rgbOf(tokens?.accent);
+  const t = rgbOf(tokens?.text);
+  const g = rgbOf(tokens?.header);
+  if (!tokens || !a || !t || !g) {
+    Object.assign(WORLD_OVERLAY_STYLE, DEFAULT_OVERLAY_COLORS);
+    return;
+  }
+  const rgba = (c, alpha) => `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${alpha})`;
+  const m = rgbOf(tokens.muted) || t;
+  Object.assign(WORLD_OVERLAY_STYLE, {
+    background: rgba(g, CARD_PLATE_ALPHA),
+    selectedBackground: rgba(g, 0.94),
+    border: rgba(t, 0.18),
+    selectedBorder: rgba(a, 0.72),
+    title: rgba(t, 0.96),
+    detail: rgba(m, 0.92),
+    leader: rgba(a, 0.58),
+    accent: `rgb(${a[0]}, ${a[1]}, ${a[2]})`,
+    anchorDotStroke: rgba(g, 0.96),
+  });
+}
 
 /** CCTV's field-tested thumbnail-card overrides on top of shared card chrome. */
 export const CCTV_THUMBNAIL_STYLE = Object.freeze({

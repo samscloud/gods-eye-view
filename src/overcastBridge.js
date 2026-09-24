@@ -18,6 +18,7 @@
 import { flyToLandmark } from './locations.js';
 import { interruptCameraMotion, activeCameraMotionId } from './cameraVerbs.js';
 import { OVERCAST_LAYERS_ID, sanitizeLayerIds } from './overcastLayers.js';
+import { applyOvercastTheme, applyThemeFromLocation } from './overcastTheme.js';
 
 export function validFlyTo(data) {
   if (!data || data.type !== 'overcast:flyTo') return null;
@@ -104,8 +105,14 @@ export function installOvercastBridge({ viewer, signal, dataManager = null, orig
   } catch {
     /* no location in tests */
   }
+  // Standalone /globe/?theme=<id>; embedded pages get the theme by message.
+  void applyThemeFromLocation({ viewer });
   const onMessage = (event) => {
     if (event.origin !== origin) return;
+    if (event.data?.type === 'overcast:theme') {
+      applyOvercastTheme(event.data.theme, event.data.tokens, { viewer });
+      return;
+    }
     if (event.data?.type === 'overcast:layers') {
       if (dataManager) void applyHostLayers(dataManager, event.data.layers);
       return;

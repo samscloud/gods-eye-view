@@ -30,6 +30,7 @@ import {
   selectEntityContext,
 } from './data/contextStore.js';
 import { isPointerFree } from './data/inputOwnership.js';
+import { currentOvercastTheme } from './overcastTheme.js';
 import {
   clearOverlaySource,
   setOverlayEntries,
@@ -152,8 +153,9 @@ function hexTriplet(hex) {
   return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
 }
 
-async function fetchStyles() {
-  const res = await fetch('/api/globe/overcast-icons', { credentials: 'same-origin' });
+async function fetchStyles(theme) {
+  const q = theme ? `?theme=${encodeURIComponent(theme)}` : '';
+  const res = await fetch(`/api/globe/overcast-icons${q}`, { credentials: 'same-origin' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const body = await res.json();
   return body?.layers && typeof body.layers === 'object' ? body.layers : {};
@@ -177,7 +179,9 @@ export function createOvercastLayersLayer({ fetchImpl = fetchLayer, fetchStylesI
   let request = null;
   let handler = null;
   let styles = null;
+  let stylesTheme = null;
   let stylesLoad = null;
+  let onTheme = null;
   let selectedId = null;
   let removeCameraListener = null;
   const perLayer = new Map(); // id -> { count, kind, error, asOf }
@@ -185,16 +189,28 @@ export function createOvercastLayersLayer({ fetchImpl = fetchLayer, fetchStylesI
   let lastUpdate = null;
   let lastError = null;
 
+  /** Marks and card accents in the active Overcast theme (re-fetched when it changes). */
   function loadStyles() {
-    if (styles) return Promise.resolve(styles);
-    stylesLoad ??= fetchStylesImpl()
-      .then((s) => (styles = s))
+    const theme = currentOvercastTheme()?.theme ?? null;
+    if (styles && stylesTheme === theme) return Promise.resolve(styles);
+    stylesLoad ??= fetchStylesImpl(theme)
+      .then((s) => {
+        styles = s;
+        stylesTheme = theme;
+        return s;
+      })
       .catch(() => (styles = {})) // marks fall back to accent dots; cards still work
       .finally(() => (stylesLoad = null));
     return stylesLoad;
   }
 
   const styleFor = (layerId) => styles?.[layerId] || {};
+
+  /** Critical items take the theme's danger colour on their card; the rest the theme accent. */
+  function accentFor(p, m) {
+    const danger = currentOvercastTheme()?.tokens?.danger;
+    return p.severity === 'critical' && danger ? hexTriplet(danger) : m.accent;
+  }
 
   function iconFor(p) {
     const s = styleFor(p.layerId);
@@ -221,7 +237,7 @@ export function createOvercastLayersLayer({ fetchImpl = fetchLayer, fetchStylesI
         collisionGroup: 'ambient-card',
         title: m.ambient.title,
         details: m.ambient.details,
-        accent: m.accent,
+        accent: accentFor(p, m),
         priority: (SEVERITY_RANK[p.severity] ?? 0) * 10,
         gapPx: 16,
         leaderOffsetPx: 10,
@@ -294,7 +310,7 @@ export function createOvercastLayersLayer({ fetchImpl = fetchLayer, fetchStylesI
       const m = overcastCardModel(p, style, now);
       entity.gevTrackedId = `overcast-layers:${p.id}`;
       entity.gevDisplayPosition = () => position;
-      entity.gevLabelModel = { title: m.selected.title, details: m.selected.details, accent: m.accent, cardStyle: 'tactical' };
+      entity.gevLabelModel = { title: m.selected.title, details: m.selected.details, accent: accentFor(p, m), cardStyle: 'tactical' };
       registerEntityContext(entity, {
         id: p.id,
         layerId: OVERCAST_LAYERS_ID,
@@ -356,6 +372,14 @@ export function createOvercastLayersLayer({ fetchImpl = fetchLayer, fetchStylesI
       if (!removeCameraListener && viewer?.camera?.moveEnd) {
         removeCameraListener = viewer.camera.moveEnd.addEventListener(() => publishCards());
       }
+      if (!onTheme) {
+        onTheme = () => {
+          if (!enabled) return;
+          styles = null;
+          void loadStyles().then(() => draw([...points.values()]));
+        };
+        globalThis.addEventListener?.('overcast:theme-applied', onTheme);
+      }
       publishCards();
     },
 
@@ -368,6 +392,8 @@ export function createOvercastLayersLayer({ fetchImpl = fetchLayer, fetchStylesI
       handler = null;
       removeCameraListener?.();
       removeCameraListener = null;
+      if (onTheme) globalThis.removeEventListener?.('overcast:theme-applied', onTheme);
+      onTheme = null;
       deselect();
       clearOverlaySource(OVERCAST_LAYERS_ID);
       setOverlaySourceVisible(OVERCAST_LAYERS_ID, false);
