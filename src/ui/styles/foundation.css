@@ -531,7 +531,7 @@ body:has(.data-toggle-row[data-layer-id='alpr-cameras'] .data-toggle-btn.active)
   display: block;
   width: 40px;
   height: auto;
-  filter: drop-shadow(0 0 12px rgba(var(--accent-rgb), 0.5));
+  filter: drop-shadow(0 0 12px rgba(96, 165, 250, 0.5));
 }
 
 #title-bar .title-logo::before,
@@ -590,9 +590,9 @@ body:has(.data-toggle-row[data-layer-id='alpr-cameras'] .data-toggle-btn.active)
 }
 
 .brand-logo {
-  /* The Overcast mark (Horizon, seven stars) is square. */
+  /* The Overcast mark (Horizon, seven stars) is square, and always Overcast
+     blue: the logo does not follow the theme (Gary B, 24 Sep 2026). */
   aspect-ratio: 1 / 1;
-  color: var(--accent);
   overflow: visible;
   pointer-events: none;
 }
@@ -605,8 +605,8 @@ body:has(.data-toggle-row[data-layer-id='alpr-cameras'] .data-toggle-btn.active)
 }
 
 /*
- * The OVERCAST wordmark: the same Michroma outlines, in one colour, as the
- * logo Gary B chose for the Command Center (shared/overcastMark.ts there). It scales with the heading's
+ * The OVERCAST wordmark: the same Michroma outlines as the logo Gary B chose
+ * for the Command Center (shared/overcastMark.ts there). White in every theme. It scales with the heading's
  * font-size, so the existing sizes for the title, loader and embed hold.
  */
 .title-wordmark {
@@ -620,7 +620,7 @@ body:has(.data-toggle-row[data-layer-id='alpr-cameras'] .data-toggle-btn.active)
   overflow: visible;
 }
 .title-wordmark .wm-word {
-  fill: var(--text-primary);
+  fill: #ffffff;
 }
 
 #title-bar .title-accent,

@@ -143,7 +143,7 @@ export function initLogoGaze(root = document) {
     }
   };
 
-  // Always inline: the inline SVG takes the theme accent; an <img> cannot.
+  // Inline so the mark stays crisp at any size.
   loadInlineLogos();
 
   const onPointerMove = (event) => {
