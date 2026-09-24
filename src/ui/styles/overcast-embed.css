@@ -14,13 +14,14 @@ html.overcast-embed #title-bar h1 {
   font-size: 13px;
   letter-spacing: 0.3em;
 }
+/* 28 px: the seven stars in the mark need about that much to read. */
 html.overcast-embed #title-bar .title-logo {
-  width: 18px;
+  width: 28px;
 }
 html.overcast-embed #title-bar .title-logo img,
 html.overcast-embed #title-bar .title-logo svg {
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
 }
 /* The first-run picker is a full-screen choice; in the panel it would cover
    the whole map. It still runs in full screen (/globe/). */
