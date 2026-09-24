@@ -238,11 +238,21 @@ const VETTED_VARS = new Set([
   '--dock-presets-pinned-height',
 ]);
 
+/*
+ * Out of the modelled layout: inside the Command Center embed the rail and
+ * the dock are moved into the Globe controls drawer (src/overcastControls.js,
+ * Overcast, 24 Sep 2026). Rules scoped to that drawer position them in the
+ * drawer's own flow, never in the corridor beside the credit, so they are not
+ * part of the clearance this pin computes. Only this exact scope is exempt.
+ */
+const DRAWER_SCOPE = '#oc-controls-sheet ';
+
 /** Rules whose final compound targets a modelled element (pseudo-elements aside). */
 function ownBoxEntries() {
   const entries = [];
   for (const rule of RULES) {
     for (const part of rule.parts) {
+      if (part.startsWith(DRAWER_SCOPE)) continue;
       const compound = lastCompound(part);
       if (!ELEMENT_KEYS.some((key) => compound.includes(key))) continue;
       if (compound.includes('::')) continue; // a pseudo-element is its own box

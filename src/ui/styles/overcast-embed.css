@@ -43,3 +43,329 @@ html.overcast-embed #cesium-credits img {
   width: auto;
   vertical-align: middle;
 }
+
+/*
+ * Globe controls drawer (src/overcastControls.js). Gary B, 24 Sep 2026: in
+ * the Command Center the globe's panels and dock covered the map on a phone.
+ * They now live behind the "tune" button in the top action row, and the map
+ * is clear until you ask for them. Phones: a bottom sheet. Wider panels: a
+ * left drawer. The full-screen globe (/globe/) is unchanged.
+ */
+html:not(.overcast-embed) #globe-controls-toggle {
+  display: none !important;
+}
+html.overcast-embed {
+  /* iOS Safari inflates small text in iframes; keep the sizes we set. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+html.overcast-embed #globe-controls-toggle[aria-expanded='true'] {
+  color: rgb(var(--accent-rgb));
+  border-color: rgba(var(--accent-rgb), 0.6);
+  background: rgba(var(--accent-rgb), 0.16);
+}
+
+#oc-controls-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 180;
+  background: rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+#oc-controls-sheet {
+  position: fixed;
+  z-index: 190;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  color: var(--text-primary);
+  background: rgba(var(--surface-rgb, 9, 18, 27), 0.9);
+  border: 1px solid rgba(var(--accent-rgb), 0.24);
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  backdrop-filter: blur(24px) saturate(1.3);
+  -webkit-backdrop-filter: blur(24px) saturate(1.3);
+  transition:
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 180ms ease,
+    visibility 0s linear 220ms;
+  visibility: hidden;
+  opacity: 0;
+}
+html.oc-controls-open #oc-controls-sheet {
+  visibility: visible;
+  opacity: 1;
+  transition:
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 180ms ease,
+    visibility 0s;
+}
+
+/* Wide panels: left drawer under the title row. */
+#oc-controls-sheet {
+  top: 72px;
+  bottom: 12px;
+  left: 12px;
+  width: min(360px, calc(100vw - 24px));
+  border-radius: 14px;
+  transform: translateX(calc(-100% - 24px));
+}
+html.oc-controls-open #oc-controls-sheet {
+  transform: none;
+}
+
+.oc-controls-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  padding: 12px 12px 10px 16px;
+  border-bottom: 1px solid rgba(var(--accent-rgb), 0.14);
+}
+.oc-controls-grip {
+  display: none;
+}
+.oc-controls-header h2 {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.oc-controls-close {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.oc-controls-close:hover,
+.oc-controls-close:focus-visible {
+  color: var(--text-primary);
+  border-color: rgba(var(--accent-rgb), 0.6);
+}
+.oc-controls-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+.oc-controls-footer {
+  flex: none;
+  position: relative;
+  padding: 10px 12px 12px;
+  border-top: 1px solid rgba(var(--accent-rgb), 0.14);
+}
+
+/* The moved panels flow in the drawer instead of floating over the map. */
+#oc-controls-sheet #left-panel-stack,
+#oc-controls-sheet #right-context-rail {
+  position: static !important;
+  inset: auto !important;
+  display: flex !important;
+  flex-direction: column;
+  gap: 10px;
+  width: 100% !important;
+  max-width: none !important;
+  height: auto !important;
+  max-height: none !important;
+  margin: 0 !important;
+  transform: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+/* The body scrolls; nothing inside it shrinks or clips (an opened Data
+   Layers panel grows the list instead of spilling over Scenes). */
+#oc-controls-sheet .oc-controls-body > * {
+  flex: none !important;
+}
+#oc-controls-sheet #left-panel-stack > *,
+#oc-controls-sheet #right-context-rail > * {
+  position: relative !important;
+  inset: auto !important;
+  flex: none !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: auto !important;
+  max-height: none !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+#oc-controls-sheet #left-panel-stack > * > [class$='-inner'],
+#oc-controls-sheet #right-context-rail > * > [class$='-inner'] {
+  height: auto !important;
+  max-height: none !important;
+}
+#oc-controls-sheet #command-dock {
+  position: relative !important;
+  inset: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  display: flex !important;
+  align-items: stretch;
+  gap: 6px;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  padding: 4px !important;
+  transform: none !important;
+  margin: 0 !important;
+  box-shadow: none;
+}
+/* In the drawer the dock is three equal-footed tiles, Location · AI agent ·
+   Presets, instead of the floating dock's overlapping sliding pills. */
+#oc-controls-sheet #command-dock > #location-bar,
+#oc-controls-sheet #command-dock > #control-panel {
+  inset: auto !important;
+  flex: 1 1 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  border-radius: 10px !important;
+  transform: none !important;
+}
+#oc-controls-sheet #command-dock > #location-bar {
+  order: 1;
+}
+/* Location and Presets trays open upward across the whole drawer width. */
+#oc-controls-sheet #command-dock > #location-bar,
+#oc-controls-sheet #command-dock > #control-panel,
+#oc-controls-sheet #command-dock .location-inner,
+#oc-controls-sheet #command-dock .panel-inner {
+  position: static !important;
+  /* A filter or backdrop-filter would become the trays' containing block
+     and shrink them to the tile; the drawer already blurs behind itself. */
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  contain: none !important;
+}
+#oc-controls-sheet #command-dock .dock-popover-content {
+  position: absolute !important;
+  top: auto !important;
+  right: 0 !important;
+  bottom: calc(100% + 8px) !important;
+  left: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  max-height: min(60vh, 420px) !important;
+  overflow-y: auto !important;
+  transform: none !important;
+}
+#oc-controls-sheet #command-dock > #gev-voice-control {
+  order: 2;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 9.5rem;
+  height: auto !important;
+  margin: 0 !important;
+}
+#oc-controls-sheet #command-dock > #control-panel {
+  order: 3;
+}
+#oc-controls-sheet #command-dock .dock-tray-toggle {
+  width: 100% !important;
+  min-width: 0 !important;
+  padding: 0 8px !important;
+  justify-content: center !important;
+}
+#oc-controls-sheet #command-dock .location-inner,
+#oc-controls-sheet #command-dock .panel-inner {
+  width: 100% !important;
+  padding: 0 10px !important;
+}
+#oc-controls-sheet #command-dock .location-toolbar,
+#oc-controls-sheet #command-dock .panel-header {
+  width: 100% !important;
+  min-width: 0 !important;
+  justify-content: center !important;
+}
+#oc-controls-sheet #command-dock .panel-title,
+#oc-controls-sheet #command-dock .location-toolbar-label {
+  width: auto !important;
+  max-width: 100%;
+  justify-content: center !important;
+  overflow: hidden;
+  font-size: 10px !important;
+  letter-spacing: 0.14em !important;
+  text-align: center !important;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The drawer is narrow at every size: the AI agent takes the full top row,
+   Location and Presets share the row below, so no label is clipped. */
+#oc-controls-sheet #command-dock {
+  flex-wrap: wrap;
+}
+#oc-controls-sheet #command-dock > #gev-voice-control {
+  order: 0;
+  flex: 1 1 100% !important;
+}
+#oc-controls-sheet #command-dock > #location-bar,
+#oc-controls-sheet #command-dock > #control-panel {
+  min-height: 3rem;
+}
+
+/* Phones and short panels: a bottom sheet with a grip. */
+@media (max-width: 720px), (max-height: 520px) {
+  #oc-controls-sheet {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: min(78vh, calc(100vh - 64px));
+    border-radius: 16px 16px 0 0;
+    border-bottom: 0;
+    transform: translateY(calc(100% + 12px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html.oc-controls-open #oc-controls-sheet {
+    transform: none;
+  }
+  html.oc-controls-open #oc-controls-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .oc-controls-header {
+    position: relative;
+    padding-top: 18px;
+  }
+  .oc-controls-grip {
+    display: block;
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    width: 36px;
+    height: 4px;
+    margin-left: -18px;
+    border-radius: 2px;
+    background: rgba(var(--accent-rgb), 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #oc-controls-sheet,
+  #oc-controls-backdrop {
+    transition: none !important;
+  }
+}

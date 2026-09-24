@@ -3,6 +3,7 @@ import { initAnnotations } from '../annotations/index.js';
 import { initDrawTool } from '../annotations/drawTool.js';
 import { initGevVoiceCommands } from '../voice/gevRealtime.js';
 import { installOvercastBridge } from '../overcastBridge.js';
+import { installOvercastControls } from '../overcastControls.js';
 import { installScopeMask, destroyScopeMask } from '../scopeMask.js';
 import {
   installRenderGovernor,
@@ -116,6 +117,7 @@ export function createApplicationTools({
     requestRender: governorRequestRender,
   };
   installOvercastBridge({ viewer, signal, dataManager });
+  installOvercastControls({ signal });
   const debug = window.__godsEyeView;
   defer(() => {
     if (window.__godsEyeView === debug) delete window.__godsEyeView;
