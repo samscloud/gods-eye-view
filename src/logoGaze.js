@@ -143,7 +143,7 @@ export function initLogoGaze(root = document) {
     }
   };
 
-  // Inline so the mark stays crisp at any size.
+  // Inline so the mark takes the theme (--logo-mark); an <img> cannot.
   loadInlineLogos();
 
   const onPointerMove = (event) => {

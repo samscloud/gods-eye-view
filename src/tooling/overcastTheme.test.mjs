@@ -19,6 +19,9 @@ test('a theme sets the variables every stylesheet reads', () => {
   assert.equal(v['--surface-rgb'], '18, 15, 10');
   assert.equal(v['--text-primary'], '#fef3c7');
   assert.equal(v['--bg-dark'], '#1a1510');
+  // The logo follows the theme, mark and word together.
+  assert.equal(v['--logo-mark'], '#f59e0b');
+  assert.equal(v['--logo-text'], '#fef3c7');
 });
 
 test('card chrome follows the theme, plate alpha stays as tuned, and resets', () => {

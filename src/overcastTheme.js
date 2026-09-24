@@ -54,6 +54,10 @@ export function themeCssVariables(tokens) {
     '--text-primary': tokens.text,
     '--text-secondary': `rgba(${list(t)}, 0.5)`,
     '--text-dim': `rgba(${list(t)}, 0.3)`,
+    // The Overcast logo follows the theme: mark = accent, word = text.
+    '--logo-mark': tokens.accent,
+    '--logo-mark-rgb': list(a),
+    '--logo-text': tokens.text,
   };
 }
 
