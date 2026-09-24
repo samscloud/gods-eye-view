@@ -529,7 +529,7 @@ body:has(.data-toggle-row[data-layer-id='alpr-cameras'] .data-toggle-btn.active)
 #title-bar .title-logo {
   position: relative;
   display: block;
-  width: 52px;
+  width: 40px;
   height: auto;
   filter: drop-shadow(0 0 12px rgba(var(--accent-rgb), 0.5));
 }
@@ -590,7 +590,9 @@ body:has(.data-toggle-row[data-layer-id='alpr-cameras'] .data-toggle-btn.active)
 }
 
 .brand-logo {
-  aspect-ratio: 775 / 520;
+  /* The Overcast mark (Horizon, seven stars) is square. */
+  aspect-ratio: 1 / 1;
+  color: var(--accent);
   overflow: visible;
   pointer-events: none;
 }

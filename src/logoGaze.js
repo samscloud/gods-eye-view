@@ -111,7 +111,7 @@ export function initLogoGaze(root = document) {
 
   const loadInlineLogos = async () => {
     try {
-      const source = logos[0].dataset.logoSrc || '/globe/overcast-mark.png';
+      const source = logos[0].dataset.logoSrc || '/globe/overcast-mark.svg';
       const response = await window.fetch(source);
       if (!response.ok) return;
       const markup = await response.text();
@@ -143,7 +143,8 @@ export function initLogoGaze(root = document) {
     }
   };
 
-  if (!reducedMotion) loadInlineLogos();
+  // Always inline: the inline SVG takes the theme accent; an <img> cannot.
+  loadInlineLogos();
 
   const onPointerMove = (event) => {
     if (reducedMotion || event.pointerType === 'touch') return;

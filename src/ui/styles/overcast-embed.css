@@ -14,7 +14,11 @@ html.overcast-embed #title-bar h1 {
   font-size: 13px;
   letter-spacing: 0.3em;
 }
-html.overcast-embed #title-bar .title-logo img {
+html.overcast-embed #title-bar .title-logo {
+  width: 18px;
+}
+html.overcast-embed #title-bar .title-logo img,
+html.overcast-embed #title-bar .title-logo svg {
   width: 18px;
   height: 18px;
 }
