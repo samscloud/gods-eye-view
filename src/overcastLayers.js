@@ -34,6 +34,7 @@ import { currentOvercastTheme } from './overcastTheme.js';
 import {
   clearOverlaySource,
   setOverlayEntries,
+  getWorldOverlayDiagnostics,
   setOverlaySourceVisible,
 } from './overlays/worldOverlay.js';
 
@@ -252,6 +253,16 @@ export function createOvercastLayersLayer({ fetchImpl = fetchLayer, fetchStylesI
   }
 
   /** Ambient cards through the shared world overlay, like FIRMS and vessels. */
+  let lastPublished = null;
+  // Read-only diagnostics for production support (Overcast, 24 Sep 2026: the
+  // detail cards did not appear and the overlay's own facade is dev-only).
+  globalThis.__overcastLayersDiagnostics = () => ({
+    enabled,
+    points: points.size,
+    lastPublished,
+    overlay: getWorldOverlayDiagnostics(),
+  });
+
   function publishCards() {
     if (!enabled) return;
     const now = Date.now();
@@ -287,6 +298,7 @@ export function createOvercastLayersLayer({ fetchImpl = fetchLayer, fetchStylesI
     });
     setOverlayEntries(OVERCAST_LAYERS_ID, entries, { cohortLimit: AMBIENT_COHORT, collisionCapacity: AMBIENT_COHORT, moving: false });
     setOverlaySourceVisible(OVERCAST_LAYERS_ID, true);
+    lastPublished = { at: Date.now(), count: entries.length };
   }
 
   function select(id) {
