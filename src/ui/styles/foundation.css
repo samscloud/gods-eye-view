@@ -604,6 +604,28 @@ body:has(.data-toggle-row[data-layer-id='alpr-cameras'] .data-toggle-btn.active)
   height: 100%;
 }
 
+/*
+ * The OVERCAST wordmark: Michroma outlines shared with the Command Center
+ * (shared/overcastMark.ts there), two-tone. It scales with the heading's
+ * font-size, so the existing sizes for the title, loader and embed hold.
+ */
+.title-wordmark {
+  display: inline-flex;
+  align-items: center;
+}
+.title-wordmark svg {
+  display: block;
+  height: 0.78em;
+  width: auto;
+  overflow: visible;
+}
+.title-wordmark .wm-over {
+  fill: var(--text-primary);
+}
+.title-wordmark .wm-cast {
+  fill: var(--accent);
+}
+
 #title-bar .title-accent,
 .loader-content .title-accent {
   color: var(--accent);
