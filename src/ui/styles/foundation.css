@@ -607,8 +607,9 @@ body:has(.data-toggle-row[data-layer-id='alpr-cameras'] .data-toggle-btn.active)
 
 /*
  * The OVERCAST wordmark: the same Michroma outlines as the logo Gary B chose
- * for the Command Center (shared/overcastMark.ts there), in the theme's text
- * colour (--logo-text); Midnight's by default. It scales with the heading's
+ * for the Command Center (shared/overcastMark.ts there): OVER in the theme's
+ * text colour (--logo-text), CAST in the accent with the mark (--logo-mark).
+ * Midnight's colours by default. It scales with the heading's
  * font-size, so the existing sizes for the title, loader and embed hold.
  */
 .title-wordmark {
@@ -621,8 +622,11 @@ body:has(.data-toggle-row[data-layer-id='alpr-cameras'] .data-toggle-btn.active)
   width: auto;
   overflow: visible;
 }
-.title-wordmark .wm-word {
+.title-wordmark .wm-over {
   fill: var(--logo-text, #e2e8f0);
+}
+.title-wordmark .wm-cast {
+  fill: var(--logo-mark, #60a5fa);
 }
 
 #title-bar .title-accent,
