@@ -25,3 +25,15 @@ test('planLayers sends flights, military, vessels and cameras to the globe’s o
   assert.deepEqual([...plan.native].sort(), ['ais-live-vessels', 'cctv', 'flights', 'military']);
   assert.deepEqual(plan.overcast, ['fema-disasters', 'weather']);
 });
+
+test('hostLayerGuard keeps host-managed layers as the host set them during restore', async () => {
+  const { hostLayerGuard } = await import('../overcastBridge.js');
+  const plan = planLayers(['fema-disasters', 'flights']);
+  const guard = hostLayerGuard(() => plan);
+  assert.equal(guard({ layerId: 'overcast-layers', enabled: false, origin: 'local-restore' }), 'Overcast host controls this layer');
+  assert.equal(guard({ layerId: 'overcast-layers', enabled: true, origin: 'local-restore' }), null);
+  assert.equal(guard({ layerId: 'flights', enabled: false, origin: 'share-restore' }), 'Overcast host controls this layer');
+  assert.equal(guard({ layerId: 'overcast-layers', enabled: false, origin: 'user' }), null);
+  assert.equal(guard({ layerId: 'traffic', enabled: true, origin: 'local-restore' }), null);
+  assert.equal(hostLayerGuard(() => null)({ layerId: 'overcast-layers', enabled: false, origin: 'local-restore' }), null);
+});

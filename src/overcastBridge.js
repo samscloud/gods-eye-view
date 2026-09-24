@@ -50,10 +50,40 @@ export function planLayers(list) {
   return { native, overcast };
 }
 
+const RESTORE_ORIGINS = new Set(['share-restore', 'local-restore']);
+const hostPlans = new WeakMap();
+
+/**
+ * While the host drives the globe, the globe's own saved-state restore must
+ * not switch host-managed layers back. Seen on production 24 Sep 2026: the
+ * layer loaded 828 points from ?layers=, then the local restore turned it off.
+ * Exported for tests.
+ */
+export function hostLayerGuard(getPlan) {
+  const nativeIds = new Set(Object.values(NATIVE_LAYERS));
+  return (change) => {
+    const plan = getPlan();
+    if (!plan || !RESTORE_ORIGINS.has(change?.origin)) return null;
+    if (change.layerId === OVERCAST_LAYERS_ID) {
+      const want = plan.overcast.length > 0;
+      return change.enabled === want ? null : 'Overcast host controls this layer';
+    }
+    if (nativeIds.has(change.layerId)) {
+      const want = plan.native.has(change.layerId);
+      return change.enabled === want ? null : 'Overcast host controls this layer';
+    }
+    return null;
+  };
+}
+
 /** Apply a host layer list to the globe's layer manager. */
 export async function applyHostLayers(dataManager, list) {
   if (!dataManager?.layers?.get) return null;
   const plan = planLayers(list);
+  if (!hostPlans.has(dataManager) && typeof dataManager.addVisibilityGuard === 'function') {
+    dataManager.addVisibilityGuard(hostLayerGuard(() => hostPlans.get(dataManager)?.plan ?? null));
+  }
+  hostPlans.set(dataManager, { plan });
   const nativeIds = [...new Set(Object.values(NATIVE_LAYERS))];
   const work = [];
   for (const id of nativeIds) {
