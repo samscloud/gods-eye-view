@@ -97,7 +97,56 @@ export async function applyHostLayers(dataManager, list) {
   return plan;
 }
 
-export function installOvercastBridge({ viewer, signal, dataManager = null, origin = globalThis.location?.origin }) {
+const THEME_ID = /^[a-z0-9-]{1,32}$/;
+
+/**
+ * The standalone globe with the host's current layers and theme: what the
+ * embed's full-screen button opens. Pure; exported for tests.
+ */
+export function fullScreenHref({ layers = [], theme = '' } = {}) {
+  const ids = sanitizeLayerIds(layers).sort();
+  const query = [];
+  if (ids.length) query.push(`layers=${encodeURIComponent(ids.join(','))}`);
+  if (THEME_ID.test(String(theme || ''))) query.push(`theme=${encodeURIComponent(theme)}`);
+  return `/globe/${query.length ? `?${query.join('&')}` : ''}`;
+}
+
+/**
+ * Embed only: "open full screen" at the foot of the globe's tools stack.
+ * Gary B, 25 Sep 2026: the Command Center's own "Full screen" overlay sat on
+ * top of the globe's controls; the globe's actions now live in one stack.
+ * Exported for tests.
+ */
+export function installFullScreenLink({ doc = globalThis.document } = {}) {
+  if (!doc?.documentElement?.classList?.contains('overcast-embed')) return null;
+  const stack = doc.getElementById('top-center-actions');
+  if (!stack) return null;
+  const link = doc.createElement('a');
+  link.id = 'oc-open-full';
+  link.setAttribute('target', '_blank');
+  link.setAttribute('rel', 'noopener');
+  link.setAttribute('aria-label', 'Open the globe full screen');
+  link.setAttribute('title', 'Full screen');
+  const icon = doc.createElement('span');
+  icon.className = 'material-symbols-outlined';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = 'open_in_full';
+  link.append(icon);
+  stack.append(link);
+  return link;
+}
+
+export function installOvercastBridge({ viewer, signal, dataManager = null, origin = globalThis.location?.origin, doc = globalThis.document }) {
+  // What the full-screen button opens follows the host's layers and theme.
+  const hostView = { layers: [], theme: '' };
+  try {
+    hostView.theme = new URLSearchParams(globalThis.location?.search || '').get('theme') || '';
+  } catch {
+    /* no location in tests */
+  }
+  const fullScreen = installFullScreenLink({ doc });
+  const refreshFullScreen = () => fullScreen?.setAttribute('href', fullScreenHref(hostView));
+  refreshFullScreen();
   // Standalone /globe/?layers=a,b,c (the Command Center's "Full screen" link).
   try {
     const q = new URLSearchParams(globalThis.location?.search || '').get('layers');
@@ -111,10 +160,14 @@ export function installOvercastBridge({ viewer, signal, dataManager = null, orig
     if (event.origin !== origin) return;
     if (event.data?.type === 'overcast:theme') {
       applyOvercastTheme(event.data.theme, event.data.tokens, { viewer });
+      hostView.theme = typeof event.data.theme === 'string' ? event.data.theme : '';
+      refreshFullScreen();
       return;
     }
     if (event.data?.type === 'overcast:layers') {
       if (dataManager) void applyHostLayers(dataManager, event.data.layers);
+      hostView.layers = Array.isArray(event.data.layers) ? event.data.layers : [];
+      refreshFullScreen();
       return;
     }
     const fly = validFlyTo(event.data);

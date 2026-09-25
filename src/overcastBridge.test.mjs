@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validFlyTo } from './overcastBridge.js';
+import { fullScreenHref, installFullScreenLink, validFlyTo } from './overcastBridge.js';
 import { isOvercastUnavailable, OVERCAST_UNAVAILABLE_LAYERS } from './overcastAvailability.js';
 
 test('overcast:flyTo accepts only well-formed coordinates and bounds the height', () => {
@@ -30,4 +30,38 @@ test('the gate refuses to enable unavailable layers and hides them, leaving othe
   assert.equal(await manager._setEnabledWithIntent('flights', true).promise, true);
   assert.deepEqual(calls, [['radio', false], ['flights', true]]);
   assert.deepEqual(manager.getAll().map((r) => [r.id, r.showInTogglePanel]), [['radio', false], ['flights', true]]);
+});
+
+test('full screen opens the standalone globe with the host\'s layers and theme', () => {
+  assert.equal(fullScreenHref(), '/globe/');
+  assert.equal(fullScreenHref({ layers: ['wildfires', 'flights', 'flights', 'BAD ID'], theme: 'tactical' }), '/globe/?layers=flights%2Cwildfires&theme=tactical');
+  assert.equal(fullScreenHref({ layers: [], theme: 'x"><script>' }), '/globe/', 'a malformed theme id is dropped');
+});
+
+test('the full-screen link closes the embed\'s tools stack, and only in the embed', () => {
+  const make = (tag) => {
+    const attrs = new Map();
+    const classes = new Set();
+    const node = {
+      tagName: tag.toUpperCase(), children: [], textContent: '', className: '',
+      classList: { add: (c) => classes.add(c), contains: (c) => classes.has(c) },
+      setAttribute: (k, v) => attrs.set(k, String(v)), getAttribute: (k) => attrs.get(k) ?? null,
+      append: (...kids) => node.children.push(...kids),
+    };
+    return node;
+  };
+  const docFor = (embed) => {
+    const html = make('html');
+    if (embed) html.classList.add('overcast-embed');
+    const stack = make('nav');
+    return { stack, doc: { documentElement: html, createElement: make, getElementById: (id) => (id === 'top-center-actions' ? stack : null) } };
+  };
+  assert.equal(installFullScreenLink(docFor(false)), null);
+  const { doc, stack } = docFor(true);
+  const link = installFullScreenLink({ doc });
+  assert.equal(stack.children.at(-1), link);
+  assert.equal(link.getAttribute('target'), '_blank');
+  assert.equal(link.getAttribute('rel'), 'noopener');
+  assert.equal(link.getAttribute('aria-label'), 'Open the globe full screen');
+  assert.equal(link.children[0].textContent, 'open_in_full');
 });

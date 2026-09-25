@@ -477,6 +477,28 @@ html.overcast-embed #top-center-actions button:hover,
 html.overcast-embed #top-center-actions button:focus-visible {
   background: rgba(255, 255, 255, 0.06);
 }
+/* Full screen (src/overcastBridge.js) closes the stack: a link, styled as
+   the buttons above it. */
+html:not(.overcast-embed) #oc-open-full {
+  display: none !important;
+}
+html.overcast-embed #oc-open-full {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--text-primary);
+  text-decoration: none;
+  border-top: 1px solid var(--oc-hair);
+  outline: none;
+}
+html.overcast-embed #oc-open-full .material-symbols-outlined {
+  font-size: 18px;
+}
+html.overcast-embed #oc-open-full:hover,
+html.overcast-embed #oc-open-full:focus-visible {
+  background: rgba(255, 255, 255, 0.06);
+}
 /* The Command Center's toolbar already shares the map: one share button. */
 html.overcast-embed #share-btn {
   display: none !important;
