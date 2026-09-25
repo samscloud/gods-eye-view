@@ -48,23 +48,24 @@ html.overcast-embed #cesium-credits img {
 }
 /*
  * Where the credit sits in the embed. The dock and context rail live in the
- * Globe controls drawer here, so the bottom of the map belongs to the Ask
- * bar (src/overcastCommandBar.js). The credit rides just above the whole Ask
- * stack, left-aligned: the bar measures itself into --oc-ask-h (0 when it is
- * hidden), so suggestions and answers push the credit up instead of
- * covering it, and with the bar hidden it drops to the corner. Where the
- * centred bar leaves the corner free (wide panels) it stays in the corner.
+ * Globe controls drawer here, so the bottom of the map belongs to the AI
+ * agent pod (src/overcastCommandBar.js). The credit rides just above the
+ * pod and whatever it shows (answer, suggestions), left-aligned: the pod
+ * measures itself into --oc-ask-h (0 when hidden), so nothing it shows
+ * covers the credit, and with the pod hidden the credit drops to the
+ * corner. Where the centred 360 px pod leaves the corner free (panels
+ * 900 px and wider) it stays in the corner.
  */
 html.overcast-embed #cesium-credits {
   right: auto !important;
   left: var(--oc-edge, 12px) !important;
-  bottom: calc(var(--oc-edge, 12px) + env(safe-area-inset-bottom, 0px) + var(--oc-ask-h, 52px) + 8px) !important;
+  bottom: calc(var(--oc-edge, 12px) + env(safe-area-inset-bottom, 0px) + var(--oc-ask-h, 64px) + 8px) !important;
   width: auto !important;
   max-width: calc(100vw - 2 * var(--oc-edge, 12px) - 64px) !important;
   text-align: left;
   transition: bottom 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-@media (min-width: 1100px) {
+@media (min-width: 900px) {
   html.overcast-embed #cesium-credits {
     bottom: calc(var(--oc-edge, 12px) + env(safe-area-inset-bottom, 0px) + 4px) !important;
   }
@@ -410,26 +411,23 @@ html.overcast-embed #clear-selected-layers {
 }
 
 /*
- * ── On-screen controls, designed from use (Gary B, 25 Sep 2026: "top tier
- * design ... think through it as a user"). src/overcastCommandBar.js.
+ * ── AI agent pod and flight rail (src/overcastCommandBar.js) ──────────────
+ * Gary B, 25 Sep 2026: the globe's own top buttons stay where they were;
+ * the talk control is the globe's AI AGENT control, on the map, "similar to
+ * what was already there … with a little more pop", not a chat box; flight
+ * controls come up on the right only while following a plane.
  *
- * What a person does with the globe, in order of frequency, and where it
- * lives: LOOK (the map, clear) · ASK (one bar along the bottom) · FOLLOW a
- * plane (a labelled rail on the right, only then) · ADJUST, rarely (the
- * tools stack, top right, opens the settings sheet).
- *
- * One material for all of it: dark glass, a hairline border, a soft shadow
- * for legibility over imagery. The accent marks the one primary action
- * (talk / send) and active states only. Targets are 44 px or larger.
+ * The globe's language throughout: dark panel with an accent hairline, mono
+ * uppercase kickers with wide tracking, the segmented level meter, round
+ * glass buttons, map-label cards with an accent top edge. The accent marks
+ * the mic and active states. Touch targets are 44 px or larger.
  */
 html.overcast-embed {
-  --oc-glass: rgba(var(--surface-rgb, 6, 8, 16), 0.72);
-  --oc-glass-strong: rgba(var(--surface-rgb, 6, 8, 16), 0.86);
-  --oc-hair: rgba(255, 255, 255, 0.09);
-  --oc-hair-strong: rgba(255, 255, 255, 0.14);
-  --oc-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.05) inset;
-  --oc-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --oc-edge: 12px;
+  --oc-pod-h: 64px;
+  --oc-panel: rgba(var(--surface-rgb, 6, 8, 16), 0.84);
+  --oc-line: rgba(var(--accent-rgb), 0.24);
+  --oc-shadow: 0 10px 26px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 .oc-icon {
   display: inline-grid;
@@ -438,58 +436,26 @@ html.overcast-embed {
 }
 html:not(.overcast-embed) #oc-ask,
 html:not(.overcast-embed) #oc-ask-orb,
-html:not(.overcast-embed) #oc-flight-rail {
-  display: none !important;
-}
-
-/* ── Tools stack: the globe's own camera buttons, top right, stacked. ── */
-html.overcast-embed #top-center-actions {
-  top: calc(var(--oc-edge) + env(safe-area-inset-top, 0px));
-  right: var(--oc-edge);
-  left: auto;
-  flex-direction: column;
-  gap: 0;
-  padding: 0;
-  overflow: hidden;
-  background: var(--oc-glass);
-  border: 1px solid var(--oc-hair);
-  border-radius: 14px;
-  box-shadow: var(--oc-shadow);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  transform: none;
-}
-html.overcast-embed #top-center-actions button {
-  width: 44px;
-  height: 44px;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  color: var(--text-primary);
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-html.overcast-embed #top-center-actions button + button {
-  border-top: 1px solid var(--oc-hair);
-}
-html.overcast-embed #top-center-actions button:hover,
-html.overcast-embed #top-center-actions button:focus-visible {
-  background: rgba(255, 255, 255, 0.06);
-}
-/* Full screen (src/overcastBridge.js) closes the stack: a link, styled as
-   the buttons above it. */
+html:not(.overcast-embed) #oc-flight-rail,
 html:not(.overcast-embed) #oc-open-full {
   display: none !important;
 }
+
+/* Full screen (src/overcastBridge.js) ends the globe's top row, drawn as the
+   round buttons beside it. */
 html.overcast-embed #oc-open-full {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: var(--text-secondary);
   text-decoration: none;
-  border-top: 1px solid var(--oc-hair);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   outline: none;
 }
 html.overcast-embed #oc-open-full .material-symbols-outlined {
@@ -497,63 +463,243 @@ html.overcast-embed #oc-open-full .material-symbols-outlined {
 }
 html.overcast-embed #oc-open-full:hover,
 html.overcast-embed #oc-open-full:focus-visible {
+  border-color: var(--glass-border-hover);
   background: rgba(255, 255, 255, 0.06);
 }
-/* The Command Center's toolbar already shares the map: one share button. */
-html.overcast-embed #share-btn {
+
+/* The AI agent lives on the map now; the drawer does not repeat it. */
+#oc-controls-sheet #command-dock > #gev-voice-control {
   display: none !important;
 }
-/* Settings leads the stack and is set apart from the camera buttons. */
-html.overcast-embed #globe-controls-toggle {
-  order: -1;
-}
-html.overcast-embed #globe-controls-toggle[aria-expanded='true'] {
-  color: rgb(var(--accent-rgb));
-  background: rgba(var(--accent-rgb), 0.16);
-}
-/* On a phone the app header already carries the Overcast logo: the map
-   does not repeat it. Wider panels keep the title. */
-@media (max-width: 720px) {
-  html.overcast-embed #title-bar {
-    display: none !important;
-  }
-}
 
-/* ── Ask bar ──────────────────────────────────────────────────────────── */
+/* ── The pod ───────────────────────────────────────────────────────────── */
 #oc-ask {
   position: fixed;
-  left: 50%;
+  right: var(--oc-edge);
   bottom: calc(var(--oc-edge) + env(safe-area-inset-bottom, 0px));
+  left: var(--oc-edge);
   z-index: 170;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
-  width: min(560px, calc(100vw - 2 * var(--oc-edge)));
-  transform: translateX(-50%);
-  font-family: var(--oc-ui);
+  /* The row is as wide as the map; only its pieces take touches. */
+  pointer-events: none;
+  font-family: var(--font-mono);
   transition: opacity 180ms ease, transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.oc-ask-bar {
+#oc-ask > * {
+  pointer-events: auto;
+}
+.oc-pod {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 2px;
-  height: 52px;
-  margin: 0;
-  padding: 0 5px 0 4px;
-  background: var(--oc-glass-strong);
-  border: 1px solid var(--oc-hair);
-  border-radius: 26px;
+  gap: 10px;
+  width: min(360px, 100%);
+  height: var(--oc-pod-h);
+  padding: 0 6px 0 8px;
+  background: var(--oc-panel);
+  border: 1px solid var(--oc-line);
+  border-radius: 18px;
   box-shadow: var(--oc-shadow);
-  backdrop-filter: blur(22px) saturate(1.4);
-  -webkit-backdrop-filter: blur(22px) saturate(1.4);
-  transition: border-color 160ms ease, box-shadow 160ms ease;
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
 }
-#oc-ask[data-state='focus'] .oc-ask-bar,
-#oc-ask[data-state='typing'] .oc-ask-bar {
-  border-color: rgba(var(--accent-rgb), 0.55);
-  box-shadow: var(--oc-shadow), 0 0 0 3px rgba(var(--accent-rgb), 0.14);
+/* A lit edge along the top, as on the map's own labels. */
+.oc-pod::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 22px;
+  right: 22px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 0.85), transparent);
 }
+
+/* The mic: the one thing to reach for. */
+.oc-talk,
+#oc-ask-orb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  color: rgb(var(--accent-rgb));
+  background: radial-gradient(circle at 50% 30%, rgba(var(--accent-rgb), 0.34), rgba(var(--accent-rgb), 0.06) 72%);
+  border: 1.5px solid rgba(var(--accent-rgb), 0.8);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 4px rgba(var(--accent-rgb), 0.08),
+    0 0 22px rgba(var(--accent-rgb), 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 120ms ease;
+}
+.oc-talk:active,
+#oc-ask-orb:active {
+  transform: scale(0.94);
+}
+.oc-talk .oc-icon {
+  grid-area: 1 / 1;
+}
+/* The globe's orbit ring around its mic, turning slowly. */
+.oc-talk-orbit {
+  position: absolute;
+  inset: -6px;
+  border: 1px dashed rgba(var(--accent-rgb), 0.45);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: oc-orbit 16s linear infinite;
+}
+@keyframes oc-orbit {
+  to { transform: rotate(360deg); }
+}
+.oc-talk-pulse {
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgba(var(--accent-rgb), 0.7);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+.oc-talk .oc-icon-stop {
+  display: none;
+}
+#oc-ask[data-state='listening'] .oc-talk,
+#oc-ask[data-state='thinking'] .oc-talk {
+  color: #fff;
+  background: rgb(var(--accent-rgb));
+  box-shadow:
+    0 0 0 4px rgba(var(--accent-rgb), 0.2),
+    0 0 30px rgba(var(--accent-rgb), 0.6);
+}
+#oc-ask[data-state='listening'] .oc-talk .oc-icon-mic,
+#oc-ask[data-state='thinking'] .oc-talk .oc-icon-mic {
+  display: none;
+}
+#oc-ask[data-state='listening'] .oc-talk .oc-icon-stop,
+#oc-ask[data-state='thinking'] .oc-talk .oc-icon-stop {
+  display: grid;
+}
+#oc-ask[data-state='listening'] .oc-talk-pulse {
+  animation: oc-pulse 1.5s ease-out infinite;
+}
+@keyframes oc-pulse {
+  from { transform: scale(1); opacity: 0.85; }
+  to { transform: scale(1.75); opacity: 0; }
+}
+#oc-ask[data-state='listening'] .oc-talk-orbit,
+#oc-ask[data-state='thinking'] .oc-talk-orbit {
+  border-color: rgba(var(--accent-rgb), 0.75);
+  animation-duration: 4s;
+}
+
+/* Readout: AI AGENT · status, then the level meter (or what it heard). */
+.oc-pod-readout {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  height: 100%;
+  padding-left: 4px;
+}
+.oc-pod-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 9.5px/1 var(--font-mono);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.oc-pod-kicker {
+  color: rgba(var(--accent-rgb), 0.78);
+}
+.oc-pod-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary);
+}
+.oc-pod-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(226, 232, 240, 0.4);
+}
+#oc-ask[data-state='listening'] .oc-pod-status::before,
+#oc-ask[data-state='thinking'] .oc-pod-status::before {
+  background: rgb(var(--accent-rgb));
+  box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.9);
+  animation: oc-blink 1s ease-in-out infinite;
+}
+#oc-ask[data-state='error'] .oc-pod-status::before {
+  background: #f87171;
+}
+@keyframes oc-blink {
+  50% { opacity: 0.35; }
+}
+.oc-pod-meter {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 14px;
+}
+.oc-pod-meter i {
+  display: block;
+  width: 3px;
+  height: 5px;
+  border-radius: 1px;
+  background: rgba(var(--accent-rgb), 0.36);
+  transform-origin: bottom;
+  transition: height 160ms ease;
+}
+#oc-ask[data-state='listening'] .oc-pod-meter i {
+  height: 14px;
+  background: rgb(var(--accent-rgb));
+  box-shadow: 0 0 5px rgba(var(--accent-rgb), 0.45);
+  animation: oc-level 700ms ease-in-out infinite alternate;
+  animation-delay: calc(var(--bar) * -53ms);
+}
+#oc-ask[data-state='listening'] .oc-pod-meter i:nth-child(3n) { animation-duration: 520ms; }
+#oc-ask[data-state='listening'] .oc-pod-meter i:nth-child(4n) { animation-duration: 860ms; }
+@keyframes oc-level {
+  from { transform: scaleY(0.2); }
+  to { transform: scaleY(1); }
+}
+.oc-pod-heard {
+  display: none;
+  overflow: hidden;
+  color: rgba(226, 232, 240, 0.86);
+  font: 400 12px/1.2 var(--font-mono);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#oc-ask[data-state='thinking'] .oc-pod-heard:not(:empty) {
+  display: block;
+}
+#oc-ask[data-state='thinking'] .oc-pod-meter:has(~ .oc-pod-heard:not(:empty)) {
+  display: none;
+}
+/* Thinking without words to show: a scan runs along the meter. */
+#oc-ask[data-state='thinking'] .oc-pod-meter i {
+  height: 6px;
+  animation: oc-scan 1.2s linear infinite;
+  animation-delay: calc(var(--bar) * 60ms);
+}
+@keyframes oc-scan {
+  0%, 100% { background: rgba(var(--accent-rgb), 0.25); }
+  12% { background: rgb(var(--accent-rgb)); }
+}
+
+/* Ghost buttons: type, hide. */
+.oc-type,
 .oc-ask-hide,
 .oc-answer-close {
   display: grid;
@@ -562,188 +708,136 @@ html.overcast-embed #globe-controls-toggle[aria-expanded='true'] {
   width: 40px;
   height: 44px;
   padding: 0;
-  color: rgba(226, 232, 240, 0.5);
+  color: rgba(226, 232, 240, 0.62);
   background: transparent;
   border: 0;
-  border-radius: 50%;
+  border-radius: 12px;
   cursor: pointer;
 }
+.oc-ask-hide {
+  width: 32px;
+  color: rgba(226, 232, 240, 0.42);
+}
+.oc-type:hover,
+.oc-type:focus-visible,
 .oc-ask-hide:hover,
 .oc-ask-hide:focus-visible,
 .oc-answer-close:hover,
 .oc-answer-close:focus-visible {
   color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
 }
-.oc-ask-field {
-  position: relative;
-  display: flex;
+.oc-type .oc-icon {
+  grid-area: 1 / 1;
+}
+.oc-type .oc-icon-close,
+#oc-ask[data-compose='1'] .oc-type .oc-icon-keyboard {
+  display: none;
+}
+#oc-ask[data-compose='1'] .oc-type .oc-icon-close {
+  display: grid;
+}
+
+/* Typing: the readout gives way to one line in the same pod. */
+.oc-compose {
+  display: none;
   flex: 1;
-  min-width: 0;
   align-items: center;
+  gap: 6px;
+  min-width: 0;
   height: 100%;
+  margin: 0;
+}
+#oc-ask[data-compose='1'] .oc-compose {
+  display: flex;
+}
+#oc-ask[data-compose='1'] .oc-pod-readout,
+#oc-ask[data-compose='1'] .oc-ask-hide {
+  display: none;
+}
+#oc-ask[data-compose='1'] .oc-pod {
+  border-color: rgba(var(--accent-rgb), 0.5);
 }
 .oc-ask-input {
   flex: 1;
   min-width: 0;
-  height: 100%;
+  height: 40px;
   margin: 0;
-  padding: 0 6px;
+  padding: 0 4px;
   color: var(--text-primary);
   background: transparent !important;
   border: 0 !important;
+  border-bottom: 1px solid rgba(var(--accent-rgb), 0.34) !important;
   border-radius: 0;
   outline: none !important;
   box-shadow: none !important;
   -webkit-appearance: none;
   appearance: none;
   /* 16 px stops iOS zooming the page when the field takes focus. */
-  font: 400 16px/1 var(--oc-ui);
+  font: 400 16px/1 var(--font-mono);
   letter-spacing: 0;
   caret-color: rgb(var(--accent-rgb));
 }
+.oc-ask-input:focus {
+  border-bottom-color: rgb(var(--accent-rgb)) !important;
+}
 .oc-ask-input::placeholder {
-  color: rgba(226, 232, 240, 0.46);
+  color: rgba(226, 232, 240, 0.4);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
-.oc-ask-wave,
-.oc-ask-live {
-  display: none;
-}
-/* The one primary action: talk when empty, send when typed, stop while busy. */
-.oc-ask-action {
-  position: relative;
+.oc-send {
   display: grid;
   place-items: center;
   flex: none;
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   padding: 0;
-  color: #fff;
-  background: rgb(var(--accent-rgb));
-  border: 0;
+  color: rgba(226, 232, 240, 0.45);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(var(--accent-rgb), 0.35);
-  transition: transform 120ms ease, background-color 160ms ease;
 }
-.oc-ask-action:active {
-  transform: scale(0.94);
-}
-.oc-ask-action .oc-icon {
-  grid-area: 1 / 1;
-}
-.oc-ask-action .oc-icon-send,
-.oc-ask-action .oc-icon-stop {
-  display: none;
-}
-#oc-ask[data-state='typing'] .oc-icon-mic,
-#oc-ask[data-state='listening'] .oc-icon-mic,
-#oc-ask[data-state='thinking'] .oc-icon-mic {
-  display: none;
-}
-#oc-ask[data-state='typing'] .oc-icon-send,
-#oc-ask[data-state='listening'] .oc-icon-stop,
-#oc-ask[data-state='thinking'] .oc-icon-stop {
-  display: grid;
-}
-/* Talking: a live waveform takes the field's place. */
-#oc-ask[data-state='listening'] .oc-ask-input,
-#oc-ask[data-state='thinking'] .oc-ask-input {
-  display: none;
-}
-#oc-ask[data-state='listening'] .oc-ask-wave,
-#oc-ask[data-state='listening'] .oc-ask-live,
-#oc-ask[data-state='thinking'] .oc-ask-live {
-  display: flex;
-}
-.oc-ask-wave {
-  align-items: center;
-  gap: 3px;
-  height: 22px;
-  margin: 0 10px 0 6px;
-}
-.oc-ask-wave i {
-  display: block;
-  width: 3px;
-  height: 100%;
-  border-radius: 2px;
+#oc-ask[data-typed='1'] .oc-send {
+  color: #fff;
   background: rgb(var(--accent-rgb));
-  transform-origin: center;
-  animation: oc-wave 1s ease-in-out infinite;
-}
-.oc-ask-wave i:nth-child(2) { animation-delay: -0.8s; }
-.oc-ask-wave i:nth-child(3) { animation-delay: -0.55s; }
-.oc-ask-wave i:nth-child(4) { animation-delay: -0.3s; }
-.oc-ask-wave i:nth-child(5) { animation-delay: -0.1s; }
-@keyframes oc-wave {
-  0%, 100% { transform: scaleY(0.25); opacity: 0.7; }
-  50% { transform: scaleY(1); opacity: 1; }
-}
-.oc-ask-live {
-  align-items: center;
-  color: var(--text-primary);
-  font: 500 15px/1 var(--oc-ui);
-}
-#oc-ask[data-state='thinking'] .oc-ask-live {
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  flex: 1;
-  line-height: 1.3;
-  padding-left: 10px;
-  background: linear-gradient(90deg, rgba(226, 232, 240, 0.45) 0%, #fff 40%, rgba(226, 232, 240, 0.45) 80%);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: oc-shimmer 1.6s linear infinite;
-}
-@keyframes oc-shimmer {
-  from { background-position: 100% 0; }
-  to { background-position: -100% 0; }
-}
-#oc-ask[data-state='listening'] .oc-ask-action {
-  animation: oc-live 1.6s ease-in-out infinite;
-}
-@keyframes oc-live {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.45); }
-  50% { box-shadow: 0 0 0 8px rgba(var(--accent-rgb), 0); }
+  border-color: transparent;
+  box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.45);
 }
 
-/* Suggestions: on an empty, focused field, things the agent can do. */
+/* Things the agent can do, offered when the type line opens empty. */
 .oc-ask-suggest {
   display: none;
-  gap: 8px;
+  gap: 6px;
+  width: min(360px, 100%);
   overflow-x: auto;
   scrollbar-width: none;
-  padding: 2px;
-}
-/* A row that runs off the edge fades there: more to scroll to. */
-#oc-ask[data-state='focus'] .oc-ask-suggest {
-  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
-  mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
-  padding-right: 28px;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
+  padding-right: 24px;
 }
 .oc-ask-suggest::-webkit-scrollbar {
   display: none;
 }
-#oc-ask[data-state='focus'] .oc-ask-suggest {
+#oc-ask[data-compose='1'][data-typed='0']:not(.has-answer) .oc-ask-suggest {
   display: flex;
 }
 .oc-chip {
   flex: none;
-  height: 36px;
-  padding: 0 14px;
+  height: 32px;
+  padding: 0 12px;
   color: var(--text-primary);
-  font: 500 13px/1 var(--oc-ui);
+  font: 500 10px/1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   white-space: nowrap;
-  background: var(--oc-glass-strong);
-  border: 1px solid var(--oc-hair-strong);
-  border-radius: 18px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: var(--oc-panel);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   cursor: pointer;
 }
 .oc-chip:hover,
@@ -751,36 +845,34 @@ html.overcast-embed #globe-controls-toggle[aria-expanded='true'] {
   border-color: rgba(var(--accent-rgb), 0.6);
 }
 
-/* The answer, above the bar. */
+/* The answer: a card like the map's own labels, above the pod. */
 .oc-answer {
   display: none;
+  width: min(360px, 100%);
   max-height: 34vh;
   overflow: auto;
-  padding: 10px 6px 12px 14px;
-  background: var(--oc-glass-strong);
-  border: 1px solid var(--oc-hair);
-  border-radius: 16px;
+  padding: 8px 6px 12px 12px;
+  background: rgba(var(--surface-rgb, 6, 8, 16), 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 2px solid rgb(var(--accent-rgb));
+  border-radius: 6px;
   box-shadow: var(--oc-shadow);
-  backdrop-filter: blur(22px) saturate(1.4);
-  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 #oc-ask.has-answer .oc-answer {
   display: block;
-}
-#oc-ask.has-answer .oc-ask-suggest {
-  display: none;
 }
 .oc-answer-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 22px;
-  margin: 0 0 2px;
+  height: 24px;
 }
 .oc-answer-kicker {
-  color: rgb(var(--accent-rgb));
-  font: 600 10px/1 var(--font-mono);
-  letter-spacing: 0.16em;
+  color: rgba(var(--accent-rgb), 0.85);
+  font: 600 9.5px/1 var(--font-mono);
+  letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 .oc-answer-close {
@@ -789,11 +881,11 @@ html.overcast-embed #globe-controls-toggle[aria-expanded='true'] {
 }
 /* What was asked, so a spoken question can be checked at a glance. */
 .oc-answer-asked {
-  margin: 0 0 4px;
-  padding-right: 10px;
+  margin: 0 0 6px;
+  padding-right: 8px;
   overflow: hidden;
-  color: rgba(226, 232, 240, 0.55);
-  font: 400 13px/1.35 var(--oc-ui);
+  color: rgba(226, 232, 240, 0.5);
+  font: 400 11px/1.35 var(--font-mono);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -801,80 +893,63 @@ html.overcast-embed #globe-controls-toggle[aria-expanded='true'] {
   display: none;
 }
 .oc-answer-asked::before {
-  content: '\201C';
-}
-.oc-answer-asked::after {
-  content: '\201D';
+  content: '› ';
 }
 .oc-answer-text {
   margin: 0;
-  padding-right: 10px;
+  padding-right: 8px;
   color: var(--text-primary);
-  font: 400 14px/1.45 var(--oc-ui);
+  font: 400 12.5px/1.55 var(--font-mono);
 }
 
-/* Hidden: one orb in the thumb corner brings it back. */
+/* Hidden: only the mic, in the corner. */
 #oc-ask-orb {
   position: fixed;
-  right: var(--oc-edge);
-  bottom: calc(var(--oc-edge) + env(safe-area-inset-bottom, 0px));
+  right: calc(var(--oc-edge) + 4px);
+  bottom: calc(var(--oc-edge) + env(safe-area-inset-bottom, 0px) + 8px);
   z-index: 170;
   display: none;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  padding: 0;
-  color: rgb(var(--accent-rgb));
-  background: var(--oc-glass-strong);
-  border: 1px solid rgba(var(--accent-rgb), 0.45);
-  border-radius: 50%;
-  box-shadow: var(--oc-shadow);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  cursor: pointer;
+  background-color: var(--oc-panel);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 html.oc-command-collapsed #oc-ask {
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, 24px);
+  transform: translateY(24px);
+}
+html.oc-command-collapsed #oc-ask > * {
+  pointer-events: none;
 }
 html.oc-command-collapsed #oc-ask-orb {
   display: grid;
 }
-/* The settings sheet takes the bottom on phones; the bar steps aside. */
+/* The settings sheet takes the bottom on phones; the pod steps aside. */
 html.oc-controls-open #oc-ask,
-html.oc-controls-open #oc-ask-orb {
+html.oc-controls-open #oc-ask-orb,
+html.oc-controls-open #oc-flight-rail {
   opacity: 0;
+  pointer-events: none;
+}
+html.oc-controls-open #oc-ask > * {
   pointer-events: none;
 }
 
 /* ── Flight rail: only while following an aircraft ─────────────────────── */
-/* Following a plane, the camera buttons (tilt, north, whole globe) do not
-   apply and leave the stack: only Settings stays top right. The flight
-   actions stand in the bottom-right column, just above the bar's action
-   button (or the orb, with the bar hidden): in thumb reach, and clear of the
-   aircraft's own label, which sits high on the map. */
-html.oc-flight-active #tilt-map-view,
-html.oc-flight-active #north-up-view,
-html.oc-flight-active #reset-globe-view {
-  display: none !important;
-}
+/* Round buttons like the globe's own, labelled, low on the right: in
+   thumb reach and clear of the aircraft's label up top. */
 #oc-flight-rail {
   position: fixed;
   right: var(--oc-edge);
-  bottom: calc(var(--oc-edge) + env(safe-area-inset-bottom, 0px) + 52px + 10px);
+  /* Just above the hidden-pod mic (52 px at the corner); on phones the pod
+     itself keeps left of this column while following. */
+  bottom: calc(var(--oc-edge) + env(safe-area-inset-bottom, 0px) + 70px);
   z-index: 168;
   display: none;
   flex-direction: column;
-  width: 60px;
-  overflow: hidden;
-  background: var(--oc-glass);
-  border: 1px solid var(--oc-hair);
-  border-radius: 16px;
-  box-shadow: var(--oc-shadow);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  font-family: var(--oc-ui);
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
 }
 html.oc-flight-active #oc-flight-rail {
   display: flex;
@@ -883,56 +958,71 @@ html.oc-flight-active #oc-flight-rail {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 3px;
-  width: 100%;
-  height: 54px;
   padding: 0;
-  color: var(--text-primary);
-  background: transparent;
+  color: rgba(232, 234, 237, 0.88);
+  background: none;
   border: 0;
   cursor: pointer;
 }
-.oc-rail-btn + .oc-rail-btn {
-  border-top: 1px solid var(--oc-hair);
+.oc-rail-disc {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease, transform 120ms ease;
 }
-.oc-rail-label {
-  color: rgba(226, 232, 240, 0.62);
-  font: 500 10px/1 var(--oc-ui);
-  letter-spacing: 0.02em;
-}
-.oc-rail-btn:hover,
-.oc-rail-btn:focus-visible {
+.oc-rail-btn:hover .oc-rail-disc,
+.oc-rail-btn:focus-visible .oc-rail-disc {
+  border-color: var(--glass-border-hover);
   background: rgba(255, 255, 255, 0.06);
 }
-.oc-rail-btn[aria-pressed='true'] {
+.oc-rail-btn:active .oc-rail-disc {
+  transform: scale(0.94);
+}
+.oc-rail-label {
+  color: rgba(232, 234, 237, 0.78);
+  font: 600 8px/1 var(--font-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.8);
+}
+/* On, as the globe marks its own pressed buttons. */
+.oc-rail-btn[aria-pressed='true'] .oc-rail-disc {
   color: rgb(var(--accent-rgb));
-  background: rgba(var(--accent-rgb), 0.16);
+  border-color: rgb(var(--accent-rgb));
+  box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.3);
 }
 .oc-rail-btn[aria-pressed='true'] .oc-rail-label {
   color: rgb(var(--accent-rgb));
 }
-.oc-flight-stop {
+.oc-flight-stop .oc-rail-disc {
   color: #fca5a5;
-}
-/* On a phone the Ask stack is full width: while the rail is up, what grows
-   above the bar (suggestions, answers) keeps to the left of it. */
-@media (max-width: 720px) {
-  html.oc-flight-active .oc-answer,
-  html.oc-flight-active .oc-ask-suggest {
-    margin-right: calc(60px + 8px);
-  }
+  border-color: rgba(248, 113, 113, 0.32);
 }
 /* In the cockpit, its own instruments handle the camera. */
 html.oc-flight-cockpit .oc-flight-orbit,
 html.oc-flight-cockpit .oc-flight-recentre {
   display: none;
 }
+/* On a phone, while the rail is up, the pod's column keeps left of it. */
+@media (max-width: 720px) {
+  html.oc-flight-active #oc-ask {
+    right: calc(var(--oc-edge) + 44px + 10px);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .oc-ask-wave i,
-  #oc-ask[data-state='listening'] .oc-ask-action,
-  #oc-ask[data-state='thinking'] .oc-ask-live {
+  .oc-talk-orbit,
+  .oc-talk-pulse,
+  .oc-pod-meter i,
+  .oc-pod-status::before {
     animation: none !important;
   }
   #oc-ask,

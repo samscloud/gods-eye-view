@@ -616,25 +616,29 @@ test('the credit line is never suppressed to make room', () => {
   assert.match(css, /body\.ui-clean-view #cesium-credits,\s*\n\s*body\.recording-mode #cesium-credits \{[^}]*bottom: 36px;/);
 });
 
-test('in the Command Center embed the credit rides above the Ask stack, never under it', () => {
-  // The Ask bar owns the bottom of the embedded map (src/overcastCommandBar.js).
-  // Its suggestions and answers grow upward, so the credit's offset must add
-  // the stack's measured height, and that height must never be negative.
+test('in the Command Center embed the credit rides above the AI agent pod, never under it', () => {
+  // The AI agent pod owns the bottom of the embedded map
+  // (src/overcastCommandBar.js). Its suggestions and answers grow upward, so
+  // the credit's offset must add the pod's measured height, and that height
+  // must never be negative.
   const embed = RULES.filter((rule) => rule.parts.includes(EMBED_CREDIT));
   const phone = embed.filter((rule) => rule.media.length === 0 && rule.decls.some((decl) => decl.prop === 'bottom'));
   assert.equal(phone.length, 1, 'one base placement for the embed credit');
   const bottom = phone[0].decls.find((decl) => decl.prop === 'bottom');
   assert.ok(bottom.important, 'the embed placement must win over the modelled dock-clearance rules');
-  assert.match(bottom.value, /var\(--oc-ask-h, 52px\) \+ 8px\)$/, 'offset = edge + Ask stack height + 8px clear air');
+  assert.match(bottom.value, /var\(--oc-ask-h, 64px\) \+ 8px\)$/, 'offset = edge + pod stack height + 8px clear air');
   // Every other embed rule may only move it to the free corner on wide panels.
   for (const rule of embed.filter((r) => r !== phone[0])) {
     const moves = rule.decls.filter((decl) => GUARDED_PROPS.has(decl.prop));
     if (!moves.length) continue;
-    assert.deepEqual(rule.media, ['(min-width: 1100px)'], 'only wide panels (the centred 560px bar leaves the corner free)');
+    assert.deepEqual(rule.media, ['(min-width: 900px)'], 'only wide panels (the centred 360px pod leaves the corner free)');
   }
   const js = fs.readFileSync(path.join(ROOT, 'src/overcastCommandBar.js'), 'utf8');
   assert.match(js, /Math\.max\(0, Math\.round\(Number\(ask\.offsetHeight\) \|\| 0\)\)/, '--oc-ask-h is clamped non-negative');
   assert.match(js, /setProperty\?\.\('--oc-ask-h'/);
   const bar = fs.readFileSync(path.join(ROOT, 'src/ui/styles/overcast-embed.css'), 'utf8');
-  assert.match(bar, /#oc-ask \{[^}]*width: min\(560px/, 'the Ask stack is at most 560px wide (the wide-panel corner stays free)');
+  for (const part of ['.oc-pod', '.oc-answer', '.oc-ask-suggest']) {
+    const block = new RegExp(`\\n\\${part} \\{([^}]*)\\}`).exec(bar)?.[1] ?? '';
+    assert.match(block, /width: min\(360px, 100%\)/, `${part} is at most 360px wide (the wide-panel corner stays free)`);
+  }
 });
