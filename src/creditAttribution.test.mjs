@@ -247,12 +247,21 @@ const VETTED_VARS = new Set([
  */
 const DRAWER_SCOPE = '#oc-controls-sheet ';
 
+/*
+ * Also out of the modelled layout, for the same reason: the credit's own
+ * placement inside the embed, where the dock and rail are in the drawer and
+ * the bottom of the map belongs to the Ask bar. It is pinned by its own test
+ * below (it rides above the Ask stack and is never covered by it). Only this
+ * exact selector is exempt.
+ */
+const EMBED_CREDIT = 'html.overcast-embed #cesium-credits';
+
 /** Rules whose final compound targets a modelled element (pseudo-elements aside). */
 function ownBoxEntries() {
   const entries = [];
   for (const rule of RULES) {
     for (const part of rule.parts) {
-      if (part.startsWith(DRAWER_SCOPE)) continue;
+      if (part.startsWith(DRAWER_SCOPE) || part === EMBED_CREDIT) continue;
       const compound = lastCompound(part);
       if (!ELEMENT_KEYS.some((key) => compound.includes(key))) continue;
       if (compound.includes('::')) continue; // a pseudo-element is its own box
@@ -605,4 +614,27 @@ test('the credit line is never suppressed to make room', () => {
     assert.doesNotMatch(block, /opacity\s*:\s*0(\D|$)/, 'the credit must never be faded out');
   }
   assert.match(css, /body\.ui-clean-view #cesium-credits,\s*\n\s*body\.recording-mode #cesium-credits \{[^}]*bottom: 36px;/);
+});
+
+test('in the Command Center embed the credit rides above the Ask stack, never under it', () => {
+  // The Ask bar owns the bottom of the embedded map (src/overcastCommandBar.js).
+  // Its suggestions and answers grow upward, so the credit's offset must add
+  // the stack's measured height, and that height must never be negative.
+  const embed = RULES.filter((rule) => rule.parts.includes(EMBED_CREDIT));
+  const phone = embed.filter((rule) => rule.media.length === 0 && rule.decls.some((decl) => decl.prop === 'bottom'));
+  assert.equal(phone.length, 1, 'one base placement for the embed credit');
+  const bottom = phone[0].decls.find((decl) => decl.prop === 'bottom');
+  assert.ok(bottom.important, 'the embed placement must win over the modelled dock-clearance rules');
+  assert.match(bottom.value, /var\(--oc-ask-h, 52px\) \+ 8px\)$/, 'offset = edge + Ask stack height + 8px clear air');
+  // Every other embed rule may only move it to the free corner on wide panels.
+  for (const rule of embed.filter((r) => r !== phone[0])) {
+    const moves = rule.decls.filter((decl) => GUARDED_PROPS.has(decl.prop));
+    if (!moves.length) continue;
+    assert.deepEqual(rule.media, ['(min-width: 1100px)'], 'only wide panels (the centred 560px bar leaves the corner free)');
+  }
+  const js = fs.readFileSync(path.join(ROOT, 'src/overcastCommandBar.js'), 'utf8');
+  assert.match(js, /Math\.max\(0, Math\.round\(Number\(ask\.offsetHeight\) \|\| 0\)\)/, '--oc-ask-h is clamped non-negative');
+  assert.match(js, /setProperty\?\.\('--oc-ask-h'/);
+  const bar = fs.readFileSync(path.join(ROOT, 'src/ui/styles/overcast-embed.css'), 'utf8');
+  assert.match(bar, /#oc-ask \{[^}]*width: min\(560px/, 'the Ask stack is at most 560px wide (the wide-panel corner stays free)');
 });
