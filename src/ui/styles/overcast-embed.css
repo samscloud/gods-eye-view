@@ -385,3 +385,214 @@ html.overcast-embed #data-panel,
 html.overcast-embed #clear-selected-layers {
   display: none !important;
 }
+
+/*
+ * Command bar and flight rail (src/overcastCommandBar.js). Gary B, 25 Sep
+ * 2026: the mic to talk to the globe stays on screen by default, with a box
+ * to type beside it, and can be hidden; flight controls sit down the right
+ * edge in thumb reach while an aircraft is followed.
+ */
+html:not(.overcast-embed) #oc-command-bar,
+html:not(.overcast-embed) #oc-command-show,
+html:not(.overcast-embed) #oc-command-reply,
+html:not(.overcast-embed) #oc-flight-rail {
+  display: none !important;
+}
+
+#oc-command-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 170;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: min(560px, calc(100vw - 24px));
+  padding: 5px;
+  background: rgba(var(--surface-rgb, 9, 18, 27), 0.82);
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
+  border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  transform: translateX(-50%);
+  transition: opacity 160ms ease, transform 200ms ease;
+}
+.oc-cmd-mic,
+#oc-command-show {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgba(var(--accent-rgb), 0.45);
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb), 0.12);
+  cursor: pointer;
+}
+.oc-cmd-mic img,
+#oc-command-show img {
+  width: 20px;
+  height: 20px;
+  opacity: 0.9;
+}
+#oc-command-bar[data-status='listening'] .oc-cmd-mic,
+#oc-command-bar[data-status='thinking'] .oc-cmd-mic,
+#oc-command-bar[data-status='speaking'] .oc-cmd-mic {
+  background: rgba(var(--accent-rgb), 0.34);
+  border-color: rgb(var(--accent-rgb));
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.18);
+  animation: oc-mic-live 1.6s ease-in-out infinite;
+}
+@keyframes oc-mic-live {
+  50% {
+    box-shadow: 0 0 0 7px rgba(var(--accent-rgb), 0.06);
+  }
+}
+.oc-cmd-form {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  margin: 0;
+}
+.oc-cmd-input {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0 8px;
+  color: var(--text-primary);
+  background: transparent;
+  border: 0;
+  outline: none;
+  /* 16 px stops iOS zooming the page when the field takes focus. */
+  font: 400 16px/1 var(--font-mono);
+  letter-spacing: 0.02em;
+}
+.oc-cmd-input::placeholder {
+  color: var(--text-dim);
+}
+.oc-cmd-send,
+.oc-cmd-hide {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.oc-cmd-send:hover,
+.oc-cmd-hide:hover,
+.oc-cmd-send:focus-visible,
+.oc-cmd-hide:focus-visible {
+  color: rgb(var(--accent-rgb));
+}
+#oc-command-show {
+  position: fixed;
+  left: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 170;
+  display: none;
+  width: 44px;
+  height: 44px;
+  background: rgba(var(--surface-rgb, 9, 18, 27), 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+html.oc-command-collapsed #oc-command-bar {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 16px);
+}
+html.oc-command-collapsed #oc-command-show {
+  display: grid;
+}
+/* The controls drawer takes the bottom on phones; the bar steps aside. */
+html.oc-controls-open #oc-command-bar,
+html.oc-controls-open #oc-command-show,
+html.oc-controls-open #oc-command-reply {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#oc-command-reply {
+  position: fixed;
+  left: 50%;
+  bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+  z-index: 169;
+  width: min(560px, calc(100vw - 24px));
+  max-height: 30vh;
+  overflow: auto;
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font: 400 12px/1.45 var(--font-mono);
+  background: rgba(var(--surface-rgb, 9, 18, 27), 0.86);
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  border-radius: 10px;
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+#oc-command-reply.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+html.oc-command-collapsed #oc-command-reply {
+  bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+}
+
+#oc-flight-rail {
+  position: fixed;
+  right: 10px;
+  top: 50%;
+  z-index: 168;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px;
+  background: rgba(var(--surface-rgb, 9, 18, 27), 0.72);
+  border: 1px solid rgba(var(--accent-rgb), 0.22);
+  border-radius: 999px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transform: translateY(-40%);
+}
+html.oc-flight-active #oc-flight-rail {
+  display: flex;
+}
+#oc-flight-rail button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: var(--text-secondary);
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  border-radius: 50%;
+  cursor: pointer;
+}
+#oc-flight-rail button[aria-pressed='true'] {
+  color: rgb(var(--accent-rgb));
+  background: rgba(var(--accent-rgb), 0.22);
+  border-color: rgb(var(--accent-rgb));
+}
+#oc-flight-rail button:hover,
+#oc-flight-rail button:focus-visible {
+  color: var(--text-primary);
+  border-color: rgba(var(--accent-rgb), 0.6);
+}
+/* In the cockpit, its own instruments handle the camera. */
+html.oc-flight-cockpit #oc-flight-rail .oc-flight-orbit,
+html.oc-flight-cockpit #oc-flight-rail .oc-flight-zoom-in,
+html.oc-flight-cockpit #oc-flight-rail .oc-flight-zoom-out,
+html.oc-flight-cockpit #oc-flight-rail .oc-flight-recentre {
+  display: none;
+}

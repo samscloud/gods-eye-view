@@ -4,6 +4,7 @@ import { initDrawTool } from '../annotations/drawTool.js';
 import { initGevVoiceCommands } from '../voice/gevRealtime.js';
 import { installOvercastBridge } from '../overcastBridge.js';
 import { installOvercastControls } from '../overcastControls.js';
+import { installOvercastCommandBar } from '../overcastCommandBar.js';
 import { installScopeMask, destroyScopeMask } from '../scopeMask.js';
 import {
   installRenderGovernor,
@@ -118,6 +119,7 @@ export function createApplicationTools({
   };
   installOvercastBridge({ viewer, signal, dataManager });
   installOvercastControls({ signal });
+  installOvercastCommandBar({ viewer, signal });
   const debug = window.__godsEyeView;
   defer(() => {
     if (window.__godsEyeView === debug) delete window.__godsEyeView;

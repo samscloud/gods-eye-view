@@ -128,7 +128,8 @@ export function createOvercastSession({ emit, runAction, signal: lifetime, fetch
           history.push({ role: 'assistant', content: reply });
           emit({ type: 'transcript', role: 'assistant', text: reply, final: true });
           emit({ type: 'completion' });
-          speak(reply);
+          // Typed with the mic off: answer on screen, not out loud.
+          if (active) speak(reply);
           break;
         }
         history.push({
@@ -156,15 +157,18 @@ export function createOvercastSession({ emit, runAction, signal: lifetime, fetch
         if (round === MAX_ROUNDS - 1) {
           const reply = 'I ran out of steps on that one.';
           emit({ type: 'transcript', role: 'assistant', text: reply, final: true });
-          speak(reply);
+          if (active) speak(reply);
         }
       }
+      // A typed command with the mic off must hand the session back to idle,
+      // or the globe would show the agent as busy (Overcast, 25 Sep 2026).
       if (active) state('listening', 'Listening');
+      else state('idle', 'Voice off');
     } catch (error) {
       if (signal.aborted) return;
       const reason = error?.message || String(error);
       emit({ type: 'transcript', role: 'assistant', text: `Voice unavailable: ${reason}`, final: true });
-      state(active ? 'listening' : 'error', reason);
+      state(active ? 'listening' : 'idle', reason);
     } finally {
       if (turn === controller) turn = null;
     }
