@@ -33,13 +33,16 @@ html.overcast-embed #first-run-launcher {
  * Compact attribution in the Command Center panel (Gary B, 24 Sep 2026: make
  * the Cesium credit small, like the other map credits there). The credit
  * stays visible and clickable, as Cesium and Google require; only the logos
- * are scaled down (16 px tall, the Google logo's own size) and the text is 9 px.
+ * are scaled down and the text is 8 px (Gary B, 25 Sep 2026,
+ * asked to hide it; it cannot be hidden: the globe uses Cesium ion terrain and
+ * Esri imagery, whose terms require the credit on screen).
  */
 html.overcast-embed #cesium-credits {
-  font-size: 9px;
+  font-size: 8px !important;
+  line-height: 1.2;
 }
 html.overcast-embed #cesium-credits img {
-  max-height: 16px;
+  max-height: 13px;
   width: auto;
   vertical-align: middle;
 }
@@ -56,8 +59,8 @@ html:not(.overcast-embed) #globe-controls-toggle {
 }
 html.overcast-embed {
   /* iOS Safari inflates small text in iframes; keep the sizes we set. */
-  -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  -webkit-text-size-adjust: none;
 }
 html.overcast-embed #globe-controls-toggle[aria-expanded='true'] {
   color: rgb(var(--accent-rgb));

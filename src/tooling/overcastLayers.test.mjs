@@ -10,7 +10,8 @@ test('sanitizeLayerIds keeps well-formed ids, dedupes, drops junk', () => {
 
 test('rowToPoint draws located rows only, never (0,0)', () => {
   const row = { event_id: 'e1', start_ts: '2026-09-23T12:00:00.000Z', geo: { lat: 29.9, lon: -90.1 }, severity: { label: 'high' }, source: { provider_name: 'FEMA', item_url: 'https://fema.gov/x' }, attributes: { title: 'Hurricane Delta' } };
-  assert.deepEqual(rowToPoint('fema-disasters', row), { id: 'fema-disasters:e1', layerId: 'fema-disasters', lat: 29.9, lon: -90.1, label: 'Hurricane Delta', severity: 'high', source: 'FEMA', url: 'https://fema.gov/x', time: '2026-09-23T12:00:00.000Z', reference: false });
+  const pt = rowToPoint('fema-disasters', row);
+  assert.deepEqual({ ...pt, attrs: undefined, kind: undefined, ends: undefined }, { id: 'fema-disasters:e1', layerId: 'fema-disasters', lat: 29.9, lon: -90.1, label: 'Hurricane Delta', severity: 'high', source: 'FEMA', url: 'https://fema.gov/x', time: '2026-09-23T12:00:00.000Z', reference: false, attrs: undefined, kind: undefined, ends: undefined });
   assert.equal(rowToPoint('x', { ...row, geo: { lat: 0, lon: 0 } }), null);
   assert.equal(rowToPoint('x', { ...row, geo: null }), null);
   assert.equal(rowToPoint('x', { ...row, source: { item_url: 'javascript:alert(1)' } }).url, '');
@@ -45,7 +46,7 @@ test('Overcast items get the same card shape as FIRMS and vessel cards', () => {
     severity: { label: 'critical' }, source: { provider_name: 'ACLED' }, attributes: { title: 'Shelling near Bakhmut reported by local authorities' },
   });
   const m = overcastCardModel(p, { name: 'Conflicts', accent: '248, 113, 113' }, now);
-  assert.equal(m.ambient.title, 'Shelling near Bakhmut repor…');
+  assert.equal(m.ambient.title, 'Shelling near Bakhmut reported by…');
   assert.deepEqual(m.ambient.details, ['CONFLICTS · CRITICAL · 2h']);
   assert.deepEqual(m.selected.details, ['CONFLICTS · CRITICAL', 'ACLED · 2026-09-24 01:00 UTC', '48.500, 37.900']);
   assert.equal(m.accent, '248, 113, 113');
@@ -74,4 +75,51 @@ test('critical and high cards stay visible from the whole-globe view; others app
   assert.ok(cardMaxDistance('high') >= 20_000_000);
   assert.equal(cardMaxDistance('medium'), 2_500_000);
   assert.equal(cardMaxDistance(undefined), 2_500_000);
+});
+
+test('cards say what the item is: NWS area and expiry, volcano alert level, quake depth', async () => {
+  const now = Date.parse('2026-09-25T00:00:00Z');
+  const nws = rowToPoint('weather-alerts', {
+    event_id: 'n1', event_type: 'weather-alert', geo: { lat: 64.5, lon: -165.4 }, start_ts: '2026-09-24T20:00:00Z', end_ts: '2026-09-25T18:00:00Z',
+    severity: { label: 'high' }, source: { provider_name: 'NWS' },
+    attributes: { event: 'Coastal Flood Warning', headline: 'Coastal Flood Warning issued September 24 at 12:00PM AKDT until September 25 at 10:00AM AKDT by NWS Fairbanks AK', areaDesc: 'Norton Sound Coast; Bering Strait Coast', located: true },
+  });
+  const m = overcastCardModel(nws, { name: 'Weather Alerts' }, now);
+  assert.equal(m.ambient.title, 'Coastal Flood Warning');
+  assert.deepEqual(m.ambient.details, ['Norton Sound Coast · until 18:00 UTC', 'WEATHER ALERTS · HIGH · 4h']);
+  assert.ok(m.selected.details.some((l) => l.startsWith('Coastal Flood Warning issued')), 'headline in the selected card');
+
+  const volc = rowToPoint('volcanoes', {
+    event_id: 'v1', event_type: 'volcanic-activity', geo: { lat: 59.36, lon: -153.43 }, start_ts: '2026-09-24T23:57:00Z',
+    severity: { label: 'high' }, source: { provider_name: 'USGS' },
+    attributes: { name: 'Augustine', volcano_name: 'Augustine', region: 'Alaska', elevation_m: 1252, alert_level: 'ADVISORY', color_code: 'YELLOW', synopsis: 'Elevated seismicity continues.' },
+  });
+  const v = overcastCardModel(volc, { name: 'Volcanoes' }, now);
+  assert.equal(v.ambient.title, 'Augustine');
+  assert.deepEqual(v.ambient.details, ['Alert ADVISORY · Aviation YELLOW', 'VOLCANOES · HIGH · 3m']);
+  assert.ok(v.selected.details.includes('Alaska · 1,252 m'));
+  assert.ok(v.selected.details.includes('Elevated seismicity continues.'));
+
+  const q = rowToPoint('earthquakes', { event_id: 'q', event_type: 'earthquake', geo: { lat: 1, lon: 2 }, start_ts: '2026-09-24T23:00:00Z', attributes: { title: 'M 5.1 - 80 km S of Adak, Alaska', depth: 33.2 } });
+  assert.deepEqual(overcastCardModel(q, { name: 'Earthquakes' }, now).ambient.details[0], 'Depth 33.2 km');
+});
+
+test('facts never invent a value the feed did not send', async () => {
+  const { describeOvercastPoint, sanitizeAttributes } = await import('../overcastFacts.js');
+  const d = describeOvercastPoint({ kind: 'tropical-storm', label: 'Storm', attrs: sanitizeAttributes({ name: 'POLO', wind_speed: null, pressure: '', category: 'TS' }) });
+  assert.deepEqual(d, { title: 'POLO', facts: ['TS'], summary: '' });
+  assert.deepEqual(sanitizeAttributes({ o: { x: 1 }, f: () => 1, n: NaN, s: '  ok ' }), { s: 'ok' });
+});
+
+test('clusters are a small themed count badge, not a bare white number', async () => {
+  const { clusterBadgeDataUrl } = await import('../overcastLayers.js');
+  const svg = decodeURIComponent(clusterBadgeDataUrl(18, { header: '#120f0a', accent: '#f59e0b', text: '#fef3c7' }).split(',')[1]);
+  assert.match(svg, />18</);
+  assert.match(svg, /fill="#120f0a"/);
+  assert.match(svg, /stroke="#f59e0b"/);
+  assert.match(svg, /fill="#fef3c7">18</);
+  assert.match(decodeURIComponent(clusterBadgeDataUrl(250).split(',')[1]), />99\+</);
+  assert.match(decodeURIComponent(clusterBadgeDataUrl(3, { accent: 'url(x)' }).split(',')[1]), /stroke="#60a5fa"/, 'bad tokens fall back');
+  const src = (await import('node:fs')).readFileSync(new URL('../overcastLayers.js', import.meta.url), 'utf8');
+  assert.match(src, /cluster\.label\.show = false/);
 });

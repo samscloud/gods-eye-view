@@ -31,6 +31,7 @@ import {
 } from './data/contextStore.js';
 import { isPointerFree } from './data/inputOwnership.js';
 import { currentOvercastTheme } from './overcastTheme.js';
+import { describeOvercastPoint, sanitizeAttributes } from './overcastFacts.js';
 import {
   clearOverlaySource,
   setOverlayEntries,
@@ -92,6 +93,9 @@ export function rowToPoint(layerId, row) {
     url: typeof row?.source?.item_url === 'string' && /^https?:\/\//.test(row.source.item_url) ? row.source.item_url : '',
     time: typeof row.start_ts === 'string' ? row.start_ts : '',
     reference: a.reference === true,
+    kind: typeof row.event_type === 'string' ? row.event_type : '',
+    ends: typeof row.end_ts === 'string' ? row.end_ts : '',
+    attrs: sanitizeAttributes(a),
   };
 }
 
@@ -164,21 +168,53 @@ export function overcastCardModel(p, style = {}, nowMs = Date.now()) {
     : p.time
       ? `${p.time.replace('T', ' ').slice(0, 16)} UTC`
       : 'time not reported';
+  // Specific facts from the row (area, expiry, alert level, depth, wind…).
+  const d = describeOvercastPoint(p, nowMs);
+  const meta = [layerName, sev, age].filter(Boolean).join(' · ');
   return {
     ambient: {
-      title: trim(p.label, 28),
-      details: [[layerName, sev, age].filter(Boolean).join(' · ')],
+      title: trim(d.title || p.label, 34),
+      details: [d.facts[0] ? trim(d.facts[0], 44) : '', meta].filter(Boolean),
     },
     selected: {
-      title: trim(p.label, 44),
+      title: trim(d.title || p.label, 48),
       details: [
         [layerName, sev].filter(Boolean).join(' · '),
+        ...d.facts.map((line) => trim(line, 56)),
+        d.summary ? trim(d.summary, 96) : '',
         [p.source, when].filter(Boolean).join(' · '),
         `${p.lat.toFixed(3)}, ${p.lon.toFixed(3)}`,
-      ],
+      ].filter(Boolean),
     },
     accent: style.accent || hexTriplet(layerAccent(p.layerId)),
   };
+}
+
+const badgeCache = new Map();
+const HEX = /^#[0-9a-f]{6}$/i;
+
+/**
+ * A cluster count as a small badge: a dark disc in the theme's surface
+ * colour, a thin accent ring and the count in the theme's text colour, the
+ * same language as the Overcast markers. "99+" past two digits. Pure apart
+ * from the cache; exported for tests.
+ */
+export function clusterBadgeDataUrl(count, tokens = {}) {
+  const n = Math.max(0, Math.floor(Number(count) || 0));
+  const text = n > 99 ? '99+' : String(n);
+  const pick = (v, d) => (typeof v === 'string' && HEX.test(v) ? v : d);
+  const fill = pick(tokens.header, '#060810');
+  const ring = pick(tokens.accent, '#60a5fa');
+  const ink = pick(tokens.text, '#e2e8f0');
+  const key = `${text}|${fill}|${ring}|${ink}`;
+  let url = badgeCache.get(key);
+  if (!url) {
+    const size = text.length > 2 ? 9.5 : 11;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 26 26"><circle cx="13" cy="13" r="11.5" fill="${fill}" fill-opacity="0.88" stroke="${ring}" stroke-width="1.5"/><circle cx="13" cy="13" r="9" fill="none" stroke="${ring}" stroke-opacity="0.35" stroke-width="0.75"/><text x="13" y="13" dy="0.36em" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, Menlo, monospace" font-size="${size}" font-weight="600" fill="${ink}">${text}</text></svg>`;
+    url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    badgeCache.set(key, url);
+  }
+  return url;
 }
 
 function hexTriplet(hex) {
@@ -392,6 +428,20 @@ export function createOvercastLayersLayer({ fetchImpl = fetchLayer, fetchStylesI
       ds.clustering.enabled = true;
       ds.clustering.pixelRange = 24;
       ds.clustering.minimumClusterSize = 5;
+      // Cesium's default cluster is a large bare white number floating on
+      // the map (Gary B, 25 Sep 2026: "I don't agree with these numbers").
+      // Draw a small count badge in the Overcast marker style instead.
+      ds.clustering.clusterEvent.addEventListener((clustered, cluster) => {
+        cluster.label.show = false;
+        cluster.point.show = false;
+        cluster.billboard.show = true;
+        cluster.billboard.image = clusterBadgeDataUrl(clustered.length, currentOvercastTheme()?.tokens);
+        cluster.billboard.verticalOrigin = Cesium.VerticalOrigin.CENTER;
+        cluster.billboard.horizontalOrigin = Cesium.HorizontalOrigin.CENTER;
+        cluster.billboard.width = 26;
+        cluster.billboard.height = 26;
+        cluster.billboard.disableDepthTestDistance = Number.POSITIVE_INFINITY;
+      });
       v.dataSources.add(ds);
     },
 
